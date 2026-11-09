@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vokabeln · pruebas</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 16px; line-height: 1.4; color-scheme: light dark; }
+  h1 { font-size: 20px; } h2 { font-size: 15px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; }
+  .ok { color: #1fa971; } .mal { color: #e5484d; font-weight: 700; }
+  .caso { padding: 3px 0; font-size: 14px; } pre { font-size: 12px; overflow-x: auto; background: rgba(128,128,128,.12); padding: 10px; border-radius: 8px; }
+  #resumen { font-size: 18px; font-weight: 700; padding: 10px 0; }
+</style>
+</head>
+<body>
+<h1>Vokabeln · pruebas</h1>
+<div id="resumen">Ejecutando…</div>
+<div id="salida"></div>
+<script type="module">
+import * as M from './js/modelo.js';
+import * as SRS from './js/srs.js';
+import { armarSesion, separar, desbloqueada, prevision } from './js/scheduler.js';
+import { fusionar, leerJSON, textoResumen, importarTexto, crearCopia, restaurarCopia } from './js/import.js';
+import { generarRetos, aplicarEvento, PLANTILLAS } from './js/challenges.js';
+import { nivelDe, xpDeRespuesta, sumarDiaDeRacha, rachaVigente } from './js/stats.js';
+import * as DB from './js/db.js';
+import { registrarRespuesta, resumenGlobal, confusionesFrecuentes } from './js/history.js';
+
+const salida = document.getElementById('salida');
+let total = 0, fallidas = 0;
+const pendientes = [];
+const seccion = (t) => pendientes.push({ seccion: t });
+const prueba = (nombre, fn) => pendientes.push({ nombre, fn });
+const el = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; e.textContent = texto; salida.appendChild(e); return e; };
+function ok(cond, msg = 'condición falsa') { if (!cond) throw new Error(msg); }
+function igual(a, b, msg = '') { if (a !== b) throw new Error(`${msg} esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); }
+function cerca(a, b, tol, msg = '') { if (Math.abs(a - b) > tol) throw new Error(`${msg} esperado ≈${b}, obtenido ${a}`); }
+
+const T0 = new Date(2026, 0, 5, 9, 0, 0).getTime(); // lunes
+const SIN_FUZZ = { fuzz: false };
+const nueva = (id = 'a', dir = 'de-es') => M.estadoVacio(id, dir);
+const repetir = (e, notas, o = SIN_FUZZ, t = T0) => { for (const [g, salto] of notas) { t += salto; e = SRS.siguiente(e, g, t, o); } return { e, t }; };
+const palabra = (de, extra = {}) => { const p = { de, es: 'es-' + de, articulo: null, tipo: 'otro', tema: 'T-' + de, lektion: 1, etiquetas: [], ...extra }; p.id = M.idPalabra(p); return p; };
+const mapa = (lista) => new Map(lista.map((p) => [p.id, p]));
+/** Estado ya en repaso con la estabilidad y vencimiento indicados. */
+const enRepaso = (id, dir, { s = 10, hace = 10, vence = 0, fallos = 0, ultimas = [1, 1, 1], primera = 30 } = {}, ahora = T0) => ({
+  ...M.estadoVacio(id, dir), fase: 'repaso', estabilidad: s, dificultad: 5, ultimaRevision: ahora - hace * M.DIA, primeraRevision: ahora - primera * M.DIA,
+  proximaRevision: M.inicioDia(ahora) + vence * M.DIA, repeticiones: 5, fallos, aciertosSeguidos: fallos ? 0 : 3, ultimas, intervalo: hace,
+});
+
+// =====================================================================
+seccion('srs.js · intervalos tras aciertos y fallos');
+
+prueba('Palabra nueva + "Bien": pasa a aprendiendo y vuelve a los 10 minutos', () => {
+  const e = SRS.siguiente(nueva(), 3, T0, SIN_FUZZ);
+  igual(e.fase, 'aprendiendo'); igual(e.proximaRevision - T0, 10 * M.MIN); igual(e.intervalo, 0);
+  cerca(e.estabilidad, SRS.W[2], 1e-9); igual(e.repeticiones, 1); igual(e.primeraRevision, T0);
+});
+prueba('Palabra nueva + "Otra vez": vuelve al minuto', () => {
+  const e = SRS.siguiente(nueva(), 1, T0, SIN_FUZZ);
+  igual(e.fase, 'aprendiendo'); igual(e.proximaRevision - T0, 1 * M.MIN); igual(e.aciertosSeguidos, 0); igual(e.fallos, 0, 'un fallo al aprender no cuenta como olvido');
+});
+prueba('Dos "Bien" seguidos gradúan la palabra a intervalos de días', () => {
+  const { e } = repetir(nueva(), [[3, 0], [3, 10 * M.MIN]]);
+  igual(e.fase, 'repaso'); ok(e.intervalo >= 1, 'intervalo en días'); ok(e.proximaRevision >= M.inicioDia(T0) + M.DIA - 3600000);
+});
+prueba('"Fácil" en una palabra nueva la gradúa directamente con un intervalo largo', () => {
+  const e = SRS.siguiente(nueva(), 4, T0, SIN_FUZZ);
+  igual(e.fase, 'repaso'); igual(e.intervalo, Math.round(SRS.W[3]));
+});
+prueba('Los intervalos crecen con cada acierto', () => {
+  let { e, t } = repetir(nueva(), [[3, 0], [3, 10 * M.MIN]]);
+  const ivs = [e.intervalo];
+  for (let i = 0; i < 5; i++) { t += e.intervalo * M.DIA; e = SRS.siguiente(e, 3, t, { fuzz: false, intervaloMax: 3650 }); ivs.push(e.intervalo); }
+  for (let i = 1; i < ivs.length; i++) ok(ivs[i] > ivs[i - 1], 'no crece: ' + ivs.join(', '));
+});
+prueba('Un fallo en repaso: reaprendiendo, cuenta como olvido y baja la estabilidad', () => {
+  const antes = enRepaso('a', 'de-es', { s: 20, hace: 20 });
+  const e = SRS.siguiente(antes, 1, T0, SIN_FUZZ);
+  igual(e.fase, 'reaprendiendo'); igual(e.fallos, 1); ok(e.estabilidad < antes.estabilidad); igual(e.proximaRevision - T0, 10 * M.MIN);
+  ok(e.dificultad > antes.dificultad, 'sube la dificultad'); igual(e.ultimoFallo, T0);
+  const r = SRS.siguiente(e, 3, T0 + 10 * M.MIN, SIN_FUZZ);
+  igual(r.fase, 'repaso'); ok(r.intervalo < 20, 'tras el olvido el intervalo es más corto');
+});
+prueba('Difícil < Bien < Fácil en el nuevo intervalo', () => {
+  const antes = enRepaso('a', 'de-es', { s: 10, hace: 10 });
+  const [d, b, f] = [2, 3, 4].map((g) => SRS.siguiente(antes, g, T0, { fuzz: false }).intervalo);
+  ok(d < b && b < f, `${d} < ${b} < ${f}`);
+});
+prueba('Se respeta el intervalo máximo (180 días por defecto)', () => {
+  const e = SRS.siguiente(enRepaso('a', 'de-es', { s: 400, hace: 400 }), 4, T0, SIN_FUZZ);
+  igual(e.intervalo, 180);
+  igual(SRS.siguiente(enRepaso('a', 'de-es', { s: 400, hace: 400 }), 4, T0, { fuzz: false, intervaloMax: 60 }).intervalo, 60);
+});
+prueba('Más retención objetivo = intervalos más cortos', () => {
+  const a = SRS.intervaloDias(30, { retencion: 0.9, fuzz: false }), b = SRS.intervaloDias(30, { retencion: 0.95, fuzz: false }), c = SRS.intervaloDias(30, { retencion: 0.8, fuzz: false });
+  igual(a, 30, 'con 90 % el intervalo es la estabilidad'); ok(b < a && a < c, `${b} < ${a} < ${c}`);
+});
+prueba('La aleatoriedad reparte los intervalos sin salirse de ±8 %', () => {
+  const rand = M.crearRand(3); const vistos = new Set();
+  for (let i = 0; i < 300; i++) { const d = SRS.intervaloDias(50, {}, rand); ok(d >= 46 && d <= 54, 'fuera de rango: ' + d); vistos.add(d); }
+  ok(vistos.size >= 5, 'poca variedad');
+});
+prueba('La recuperabilidad vale 90 % cuando han pasado tantos días como la estabilidad', () => {
+  cerca(SRS.recuperabilidad(enRepaso('a', 'de-es', { s: 10, hace: 10 }), T0), 0.9, 1e-9);
+  igual(SRS.recuperabilidad(nueva(), T0), 0);
+  ok(SRS.recuperabilidad(enRepaso('a', 'de-es', { s: 10, hace: 30 }), T0) < 0.8);
+});
+prueba('Calificación automática según modo y tiempo', () => {
+  igual(SRS.calificar({ acierto: false, modo: 'escribir', ms: 1000 }), 1);
+  igual(SRS.calificar({ acierto: true, modo: 'escribir', ms: 5000, mediaMs: 10000 }), 4, 'rápido escribiendo');
+  igual(SRS.calificar({ acierto: true, modo: 'escribir', ms: 10000, mediaMs: 10000 }), 3);
+  igual(SRS.calificar({ acierto: true, modo: 'escribir', ms: 25000, mediaMs: 10000 }), 2, 'lento');
+  igual(SRS.calificar({ acierto: true, modo: 'escribir', ms: 3000, mediaMs: 10000, casi: true }), 2, 'error de umlaut aceptado');
+  igual(SRS.calificar({ acierto: true, modo: 'test', ms: 500, mediaMs: 5000 }), 3, 'el test nunca da Fácil');
+  igual(SRS.calificar({ acierto: true, modo: 'test', ms: 30000, mediaMs: 5000, sinTiempo: true }), 3, 'en Contrarreloj el tiempo no penaliza');
+  igual(SRS.calificar({ acierto: true, modo: 'tarjeta', manual: 2 }), 2, 'autoevaluación');
+});
+prueba('Las últimas 10 respuestas y la racha de aciertos se mantienen', () => {
+  let e = nueva(); let t = T0;
+  for (const g of [3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3]) { t += M.DIA; e = SRS.siguiente(e, g, t, SIN_FUZZ); }
+  igual(e.ultimas.length, 10); igual(e.aciertosSeguidos, 9); igual(e.ultimas.join(''), '0111111111');
+});
+
+// =====================================================================
+seccion('modelo.js · texto, verbos y fechas');
+
+prueba('Escribir: equivalencias ae/oe/ue/ss y mayúsculas', () => {
+  ok(M.compararAleman('Flohmarkt', 'Flohmarkt', { sustantivo: true }).ok);
+  const min = M.compararAleman('flohmarkt', 'Flohmarkt', { sustantivo: true });
+  ok(min.ok && min.mayuscula && !min.casi, 'acepta minúscula pero avisa');
+  const ae = M.compararAleman('Flohmaerkte', 'Flohmärkte', { sustantivo: true });
+  ok(ae.ok && !ae.casi, 'ae = ä es válido del todo');
+  ok(M.compararAleman('Strasse', 'Straße').ok && !M.compararAleman('Strasse', 'Straße').casi);
+  const sinDieresis = M.compararAleman('Flohmarkte', 'Flohmärkte');
+  ok(sinDieresis.ok && sinDieresis.casi, 'falta la diéresis: se acepta como "casi"');
+  ok(!M.compararAleman('Flohmarkd', 'Flohmarkt').ok);
+  ok(!M.compararAleman('', 'Flohmarkt').ok);
+});
+prueba('Escribir: paréntesis opcionales, puntuación y alternativas', () => {
+  ok(M.compararAleman('das tut mir leid', 'Das tut mir (wirklich) leid.').ok);
+  ok(M.compararAleman('Das tut mir wirklich leid', 'Das tut mir (wirklich) leid.').ok);
+  ok(M.compararAleman('Du Arme!', 'Du Armer! / Du Arme!').ok);
+  ok(M.compararAleman('backt', 'bäckt/backt').ok && M.compararAleman('bäckt', 'bäckt/backt').ok);
+});
+prueba('Diferencias: marca las letras que faltaban', () => {
+  const d = M.diferencias('Flomarkt', 'Flohmarkt');
+  igual(d.filter((x) => !x.ok).map((x) => x.t).join(''), 'h'); igual(d.map((x) => x.t).join(''), 'Flohmarkt');
+});
+prueba('Formas de los verbos irregulares a partir de las notas', () => {
+  const v = (notas) => M.formasVerbo({ tipo: 'verbo', notas });
+  igual(JSON.stringify(v('er liegt, hat gelegen')), JSON.stringify({ presente: 'liegt', perfecto: 'hat gelegen' }));
+  igual(v('separable: aus|schlafen; er schläft aus, hat ausgeschlafen').presente, 'schläft aus');
+  igual(v('fährt ab, ist abgefahren').perfecto, 'ist abgefahren');
+  igual(v('um + Akk.; er bittet, hat gebeten').presente, 'bittet');
+  igual(v('+ Akk.; = einen Rat geben'), null);
+  igual(M.formasVerbo({ tipo: 'sustantivo', notas: 'er liegt, hat gelegen' }), null);
+});
+prueba('Identificador: alemán en minúsculas sin espacios + artículo + tipo', () => {
+  igual(M.idPalabra({ de: 'Flohmarkt', articulo: 'der', tipo: 'sustantivo' }), 'flohmarkt|der|sustantivo');
+  igual(M.idPalabra({ de: 'geboren sein', articulo: null, tipo: 'verbo' }), 'geborensein|-|verbo');
+});
+prueba('Direcciones: artículo solo en sustantivos con artículo; formas solo en verbos con formas', () => {
+  igual(M.dirsDe({ de: 'Flohmarkt', articulo: 'der', tipo: 'sustantivo' }).join(), 'de-es,es-de,articulo');
+  igual(M.dirsDe({ de: 'Jura', articulo: null, tipo: 'sustantivo' }).join(), 'de-es,es-de', 'sin artículo no entra en Der·Die·Das');
+  igual(M.dirsDe({ de: 'fahren', tipo: 'verbo', notas: 'er fährt, ist gefahren' }).join(), 'de-es,es-de,formas');
+});
+prueba('Semana ISO de lunes a domingo', () => {
+  igual(M.semanaISO(new Date(2026, 0, 5, 9).getTime()), '2026-W02');
+  igual(M.semanaISO(new Date(2026, 0, 11, 23, 30).getTime()), '2026-W02', 'domingo por la noche sigue en la misma semana');
+  igual(M.semanaISO(new Date(2026, 0, 12, 0, 5).getTime()), '2026-W03', 'el lunes empieza semana');
+  igual(M.semanaISO(new Date(2027, 0, 1, 12).getTime()), '2026-W53');
+});
+prueba('Palabra problemática: 4 olvidos o menos del 60 % en las últimas 10', () => {
+  ok(M.esProblematicoEstado(enRepaso('a', 'de-es', { fallos: 4, ultimas: [1, 1, 1, 0] })));
+  ok(!M.esProblematicoEstado(enRepaso('a', 'de-es', { fallos: 3, ultimas: [1, 1, 1, 0, 1] })));
+  ok(M.esProblematicoEstado(enRepaso('a', 'de-es', { fallos: 1, ultimas: [1, 0, 0, 1, 0, 1, 0, 0, 1, 1] })), '50 % reciente');
+  ok(!M.esProblematicoEstado(enRepaso('a', 'de-es', { fallos: 1, ultimas: [0] })), 'una sola respuesta no basta');
+  ok(!M.esProblematicoEstado({ ...enRepaso('a', 'de-es', { fallos: 5, ultimas: [1, 1, 1, 1, 1, 1] }), aciertosSeguidos: 5 }), 'sale de la lista tras 5 aciertos seguidos');
+});
+
+// =====================================================================
+seccion('scheduler.js · planificador de sesiones');
+
+const vocabulario = (n, extra = () => ({})) => mapa(Array.from({ length: n }, (_, i) => palabra('wort' + String(i).padStart(3, '0'), extra(i))));
+
+prueba('Primero lo que toca hoy, de menor a mayor recuperabilidad', () => {
+  const palabras = vocabulario(6);
+  const ids = [...palabras.keys()];
+  const estados = new Map();
+  [[0, 40], [1, 12], [2, 25]].forEach(([i, hace]) => { const e = enRepaso(ids[i], 'de-es', { s: 10, hace, vence: -1 }); estados.set(e.clave, e); });
+  const futuro = enRepaso(ids[3], 'de-es', { s: 10, hace: 2, vence: 5 }); estados.set(futuro.clave, futuro);
+  const plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 0 }, rand: M.crearRand(1) });
+  igual(plan.items.map((x) => x.palabraId).join(), [ids[0], ids[2], ids[1]].join(), 'orden por recuperabilidad');
+  ok(plan.items[0].r < plan.items[1].r && plan.items[1].r < plan.items[2].r);
+  igual(plan.pendientes, 3); igual(plan.atrasadas, 3);
+});
+prueba('Límite de palabras nuevas al día (y cuenta las ya empezadas hoy)', () => {
+  const palabras = vocabulario(40);
+  const estados = new Map();
+  let plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 10, tamSesion: 50 } });
+  igual(plan.nuevas, 10); igual(plan.items.length, 10); ok(plan.items.every((x) => x.dir === 'de-es' && x.origen === 'nueva' && x.modo === 'tarjeta'));
+  // Empiezo 4 hoy: quedan 6 de cupo.
+  [...palabras.keys()].slice(0, 4).forEach((id) => { const e = SRS.siguiente(M.estadoVacio(id, 'de-es'), 4, T0 - 1000, SIN_FUZZ); estados.set(e.clave, e); });
+  plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 10, tamSesion: 50 } });
+  igual(plan.nuevas, 6);
+  // Al día siguiente el cupo se renueva.
+  igual(armarSesion({ palabras, estados, ahora: T0 + M.DIA, ajustes: { nuevasDia: 10, tamSesion: 50 } }).nuevas, 10);
+});
+prueba('Las palabras nuevas entran por orden de lección', () => {
+  const palabras = vocabulario(30, (i) => ({ lektion: i < 10 ? 3 : i < 20 ? 1 : null }));
+  const plan = armarSesion({ palabras, estados: new Map(), ahora: T0, ajustes: { nuevasDia: 12, tamSesion: 50 } });
+  const leks = plan.items.map((x) => palabras.get(x.palabraId).lektion);
+  igual(leks.filter((l) => l === 1).length, 10); igual(leks.filter((l) => l === 3).length, 2);
+});
+prueba('Con más de 100 repasos atrasados no entran palabras nuevas y el día se limita', () => {
+  const palabras = vocabulario(200);
+  const estados = new Map();
+  [...palabras.keys()].slice(0, 150).forEach((id, i) => { const e = enRepaso(id, 'de-es', { s: 10, hace: 15 + (i % 20), vence: -3 }); estados.set(e.clave, e); });
+  const plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 10, maxRepasosDia: 100, tamSesion: 500 } });
+  igual(plan.nuevas, 0); ok(plan.hayAtasco); igual(plan.pendientes, 150); igual(plan.repasos, 100, 'los atrasos se reparten');
+  // Cuando ya he hecho 80 hoy solo quedan 20.
+  igual(armarSesion({ palabras, estados, ahora: T0, ajustes: { maxRepasosDia: 100, tamSesion: 500 }, repasosHoy: 80 }).repasos, 20);
+  // Con 90 pendientes sí entran nuevas.
+  const pocos = new Map([...estados].slice(0, 90));
+  igual(armarSesion({ palabras, estados: pocos, ahora: T0, ajustes: { nuevasDia: 10, tamSesion: 500 } }).nuevas, 10);
+});
+prueba('Hueco de refuerzo con palabras problemáticas aunque no les toque', () => {
+  const palabras = vocabulario(12);
+  const ids = [...palabras.keys()];
+  const estados = new Map();
+  const add = (e) => estados.set(e.clave, e);
+  add(enRepaso(ids[0], 'de-es', { s: 10, hace: 10, vence: 0 }));
+  add(enRepaso(ids[1], 'de-es', { s: 4, hace: 2, vence: 4, fallos: 5, ultimas: [0, 1, 0, 1, 0] })); // problemática, no toca
+  add(enRepaso(ids[2], 'de-es', { s: 30, hace: 2, vence: 20 })); // sana, no toca
+  const plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 0 } });
+  igual(plan.refuerzo, 1); igual(plan.problematicas, 1);
+  const it = plan.items.find((x) => x.palabraId === ids[1]);
+  ok(it && it.origen === 'refuerzo'); ok(!plan.items.some((x) => x.palabraId === ids[2]), 'la sana que no toca no entra');
+});
+prueba('Filtro "solo problemáticas" y filtros por lección, tema, tipo y etiqueta', () => {
+  const palabras = mapa([
+    palabra('eins', { lektion: 1, tema: 'A', tipo: 'verbo', etiquetas: ['verbo irregular'] }), palabra('zwei', { lektion: 2, tema: 'A', tipo: 'adjetivo' }),
+    palabra('drei', { lektion: 2, tema: 'B', tipo: 'verbo' }), palabra('vier', { lektion: 3, tema: 'B', tipo: 'otro' }),
+  ]);
+  const base = { palabras, estados: new Map(), ahora: T0, ajustes: { nuevasDia: 10 } };
+  const des = (f) => armarSesion({ ...base, filtros: f }).items.map((x) => palabras.get(x.palabraId).de).sort().join();
+  igual(des({ lektion: 2 }), 'drei,zwei'); igual(des({ tema: 'B' }), 'drei,vier'); igual(des({ tipo: 'verbo' }), 'drei,eins'); igual(des({ etiqueta: 'verbo irregular' }), 'eins');
+  igual(des({ lektion: '2', tipo: 'verbo' }), 'drei');
+  const estados = new Map();
+  const id = [...palabras.keys()][2];
+  const e = enRepaso(id, 'de-es', { s: 4, hace: 2, vence: 4, fallos: 4, ultimas: [0, 1, 0] }); estados.set(e.clave, e);
+  const solo = armarSesion({ ...base, estados, filtros: { soloProblematicas: true } });
+  igual(solo.nuevas, 0); ok(solo.items.every((x) => x.palabraId === id));
+});
+prueba('es→de y artículo se desbloquean cuando de→es se recuerda (≥ 3 días) en un día posterior', () => {
+  const p = palabra('Flohmarkt', { articulo: 'der', tipo: 'sustantivo' });
+  const palabras = mapa([p]);
+  // Recién graduada hoy: todavía no.
+  let e = repetir(M.estadoVacio(p.id, 'de-es'), [[3, 0], [3, 10 * M.MIN]]).e;
+  let estados = new Map([[e.clave, e]]);
+  ok(!desbloqueada(estados, p.id, T0 + 3600000), 'el mismo día no se desbloquea');
+  igual(armarSesion({ palabras, estados, ahora: T0 + 3600000, ajustes: {} }).desbloqueos, 0);
+  // Acierto tres días después: desbloqueada.
+  const t = T0 + 3 * M.DIA;
+  e = SRS.siguiente(e, 3, t, SIN_FUZZ);
+  estados = new Map([[e.clave, e]]);
+  ok(e.estabilidad >= 3 && desbloqueada(estados, p.id, t));
+  const plan = armarSesion({ palabras, estados, ahora: t, ajustes: {} });
+  igual(plan.desbloqueos, 2); igual(plan.items.map((x) => x.dir).sort().join(), 'articulo,es-de');
+  igual(plan.items.find((x) => x.dir === 'articulo').modo, 'articulo');
+});
+prueba('No salen seguidas dos palabras del mismo tema o parecidas', () => {
+  const items = ['A', 'A', 'A', 'B', 'B', 'C', 'D', 'E'].map((tema, i) => ({ palabraId: 'p' + i, dir: 'de-es', tema, raiz: 'r' + i }));
+  const out = separar(items);
+  igual(out.length, items.length);
+  for (let i = 1; i < out.length; i++) ok(out[i].tema !== out[i - 1].tema, `dos seguidas del tema ${out[i].tema}`);
+  const mismas = separar([{ palabraId: 'x', dir: 'de-es', raiz: 'a' }, { palabraId: 'x', dir: 'es-de', raiz: 'a' }, { palabraId: 'y', dir: 'de-es', raiz: 'b' }]);
+  igual(mismas.map((x) => x.palabraId).join(), 'x,y,x');
+});
+prueba('Los pasos de aprendizaje pendientes entran primero', () => {
+  const palabras = vocabulario(5);
+  const ids = [...palabras.keys()];
+  const aprendiendo = SRS.siguiente(M.estadoVacio(ids[4], 'de-es'), 3, T0 - 9 * M.MIN, SIN_FUZZ);
+  const estados = new Map([[aprendiendo.clave, aprendiendo]]);
+  const r = enRepaso(ids[0], 'de-es', { vence: 0 }); estados.set(r.clave, r);
+  const plan = armarSesion({ palabras, estados, ahora: T0, ajustes: { nuevasDia: 0 } });
+  igual(plan.items[0].palabraId, ids[4]); igual(plan.items[0].origen, 'aprendizaje'); igual(plan.aprendizaje, 1);
+});
+prueba('Previsión de repasos de los próximos 7 días', () => {
+  const estados = new Map();
+  [[-2, 'a'], [0, 'b'], [1, 'c'], [1, 'd'], [6, 'e'], [9, 'f']].forEach(([vence, id]) => { const e = enRepaso(id, 'de-es', { vence }); estados.set(e.clave, e); });
+  igual(prevision(estados, T0, 7).join(), '2,2,0,0,0,0,1');
+});
+
+// =====================================================================
+seccion('import.js · importación y copias');
+
+const jsonDe = (palabras) => JSON.stringify({ version: 1, nivel: 'A2.2', palabras });
+const FLOH = { de: 'Flohmarkt', articulo: 'der', plural: 'Flohmärkte', es: 'mercadillo', tipo: 'sustantivo', lektion: 1, tema: 'Tiempo libre', etiquetas: [] };
+
+prueba('Fusión: nuevas, actualizadas, sin cambios y errores (función pura)', () => {
+  const r1 = fusionar(new Map(), leerJSON(jsonDe([FLOH, { de: 'gehen', es: 'ir', tipo: 'verbo' }])), 111);
+  igual(r1.nuevas, 2); igual(r1.actualizadas, 0); igual(r1.errores.length, 0); igual(r1.guardar[0].fechaAlta, 111); igual(r1.guardar[1].nivel, 'A2.2', 'hereda el nivel del archivo');
+  const existentes = mapa(r1.guardar);
+  const r2 = fusionar(existentes, leerJSON(jsonDe([{ ...FLOH, es: 'mercadillo (de segunda mano)' }, { de: 'gehen', es: 'ir', tipo: 'verbo' }, { de: 'neu', es: 'nuevo', tipo: 'adjetivo' }, { es: 'sin alemán' }, { de: 'Tisch', articulo: 'dem', es: 'mesa' }])), 222);
+  igual(r2.nuevas, 1); igual(r2.actualizadas, 1); igual(r2.sinCambios, 1); igual(r2.errores.length, 2);
+  igual(textoResumen(r2), '1 nueva, 1 actualizada, 1 sin cambios, 2 con error');
+  const act = r2.guardar.find((p) => p.de === 'Flohmarkt');
+  igual(act.es, 'mercadillo (de segunda mano)'); igual(act.fechaAlta, 111, 'conserva la fecha de alta'); igual(act.id, 'flohmarkt|der|sustantivo');
+  ok(/falta el campo "de"/.test(r2.errores[0]) && /no es der, die ni das/.test(r2.errores[1]), 'errores comprensibles');
+});
+prueba('Campos opcionales ausentes: la palabra se importa igual', () => {
+  const r = fusionar(new Map(), leerJSON(jsonDe([{ de: 'Jura', es: 'Derecho', tipo: 'sustantivo' }])));
+  const p = r.guardar[0];
+  igual(r.nuevas, 1); igual(p.articulo, null); igual(p.plural, null); igual(p.ejemplo, null); igual(p.revisar, false); igual(JSON.stringify(p.etiquetas), '[]');
+});
+prueba('Un mismo archivo con la palabra repetida no crea duplicados', () => {
+  const r = fusionar(new Map(), leerJSON(jsonDe([FLOH, { ...FLOH, es: 'rastro' }])));
+  igual(r.guardar.length, 1); igual(r.nuevas, 1); igual(r.guardar[0].es, 'rastro');
+});
+prueba('JSON inválido: mensajes comprensibles', () => {
+  const lanza = (txt, re) => { try { leerJSON(txt); } catch (e) { ok(re.test(e.message), e.message); return; } throw new Error('no lanzó error'); };
+  lanza('{ esto no es json', /no es un JSON válido/); lanza('{"version":1}', /Falta la lista "palabras"/); lanza('{"tipo":"copia-vokabeln","datos":{}}', /copia de seguridad/);
+  igual(leerJSON('[{"de":"a","es":"b"}]').palabras.length, 1, 'también acepta una lista directa');
+});
+prueba('Base de datos real: reimportar actualiza el texto y conserva estado e historial', async () => {
+  await DB.eliminarBase('vokabeln-pruebas');
+  await DB.abrir('vokabeln-pruebas');
+  await DB.cargar();
+  const r1 = await importarTexto(jsonDe([FLOH, { de: 'gehen', es: 'ir', tipo: 'verbo' }]));
+  igual(r1.nuevas, 2);
+  const id = 'flohmarkt|der|sustantivo';
+  await registrarRespuesta({ palabraId: id, dir: 'de-es', modo: 'tarjeta', manual: 3, acierto: true, ms: 1500, ahora: T0 });
+  await registrarRespuesta({ palabraId: id, dir: 'de-es', modo: 'test', acierto: false, ms: 2500, respuesta: 'ir', confundidaCon: 'gehen|-|verbo', ahora: T0 + 60000 });
+  const estadoAntes = JSON.stringify(DB.estadoDe(id, 'de-es'));
+  const r2 = await importarTexto(jsonDe([{ ...FLOH, es: 'mercadillo de segunda mano', ejemplo: 'Wir gehen auf den Flohmarkt.' }, { de: 'neu', es: 'nuevo', tipo: 'adjetivo' }]));
+  igual(textoResumen(r2), '1 nueva, 1 actualizada, 0 con error');
+  await DB.cargar(); // releer de disco
+  igual(DB.mem.palabras.size, 3, 'sin duplicados');
+  igual(DB.mem.palabras.get(id).es, 'mercadillo de segunda mano');
+  igual(JSON.stringify(DB.estadoDe(id, 'de-es')), estadoAntes, 'el progreso no cambia');
+  const hist = await DB.historialDePalabra(id);
+  igual(hist.length, 2); igual(hist[1].resultado, 'fallo'); igual(hist[1].respuesta, 'ir'); igual(hist[0].calificacion, 3); igual(hist[1].calificacion, 1);
+  igual(DB.diaDe(M.fechaLocal(T0)).repasadas, 2); igual(DB.mem.global.totalRespuestas, 2);
+  igual(confusionesFrecuentes()[0].puesta.de, 'gehen', 'registra la confusión');
+  igual(resumenGlobal().aprendiendo, 1);
+});
+prueba('Copia de seguridad: exportar, borrar todo y restaurar devuelve lo mismo', async () => {
+  const copia = await crearCopia(T0);
+  igual(copia.datos.historial.length, 2); igual(copia.datos.palabras.length, 3);
+  await DB.borrarTodo();
+  igual(DB.mem.palabras.size, 0); igual(await DB.contarHistorial(), 0);
+  const r = await restaurarCopia(JSON.stringify(copia));
+  igual(r.palabras, 3); igual(r.historial, 2);
+  igual(DB.mem.palabras.size, 3); igual(await DB.contarHistorial(), 2); igual(DB.mem.global.totalRespuestas, 2);
+  igual(DB.estadoDe('flohmarkt|der|sustantivo', 'de-es').repeticiones, 2);
+  let fallo = false; try { await restaurarCopia('{"palabras":[]}'); } catch (e) { fallo = /no es una copia/.test(e.message); }
+  ok(fallo, 'rechaza archivos que no son copias');
+  DB.cerrar(); await DB.eliminarBase('vokabeln-pruebas');
+});
+
+// =====================================================================
+seccion('challenges.js y stats.js · retos, XP y racha');
+
+prueba('Se generan 3 retos distintos con meta y premio', () => {
+  for (let semilla = 1; semilla <= 40; semilla++) {
+    const retos = generarRetos({ repasosSemana: 200, vistas: 80, sustantivosVistos: 30, problematicas: 6, record: 12 }, M.crearRand(semilla));
+    igual(retos.length, 3); igual(new Set(retos.map((r) => r.tipo)).size, 3, 'tipos repetidos');
+    for (const r of retos) ok(r.meta > 0 && r.xp > 0 && r.texto && r.progreso === 0 && !r.completado && r.evento);
+  }
+});
+prueba('Los retos se ajustan a la actividad y a los puntos débiles', () => {
+  const cuenta = (ctx, tipo) => { let n = 0; for (let s = 1; s <= 300; s++) if (generarRetos(ctx, M.crearRand(s)).some((r) => r.tipo === tipo)) n++; return n; };
+  igual(cuenta({ vistas: 50, problematicas: 0 }, 'problematicas'), 0, 'sin problemáticas no hay reto de problemáticas');
+  igual(cuenta({ vistas: 0 }, 'dominar'), 0, 'sin palabras vistas no pide dominar');
+  const base = { vistas: 80, sustantivosVistos: 40, repasosSemana: 150 };
+  ok(cuenta({ ...base, tasaArticulos: 0.6 }, 'articulos') > cuenta({ ...base, tasaArticulos: 0.95 }, 'articulos') + 30, 'artículos flojos → más reto de artículos');
+  const rep = PLANTILLAS.find((p) => p.tipo === 'repasos');
+  ok(rep.crear({ repasosSemana: 400 }).meta > rep.crear({ repasosSemana: 100 }).meta, 'más actividad → meta mayor');
+  igual(PLANTILLAS.find((p) => p.tipo === 'record').crear({ record: 14 }).meta, 15);
+});
+prueba('El progreso de los retos avanza y se completan', () => {
+  const semana = { semana: '2026-W02', retos: [
+    { tipo: 'articulos', evento: 'articuloOk', meta: 3, progreso: 0, completado: false, xp: 90 },
+    { tipo: 'record', evento: 'contrarreloj', meta: 15, progreso: 0, completado: false, xp: 100, maximo: true },
+  ] };
+  igual(aplicarEvento(semana, 'articuloOk').length, 0); aplicarEvento(semana, 'articuloOk');
+  const hechos = aplicarEvento(semana, 'articuloOk');
+  igual(hechos.length, 1); ok(semana.retos[0].completado); igual(aplicarEvento(semana, 'articuloOk').length, 0, 'no se completa dos veces');
+  aplicarEvento(semana, 'contrarreloj', 9); aplicarEvento(semana, 'contrarreloj', 7);
+  igual(semana.retos[1].progreso, 9, 'el récord guarda el mejor valor');
+  igual(aplicarEvento(semana, 'contrarreloj', 16).length, 1);
+});
+prueba('XP: más en modos difíciles y problemáticas; niveles crecientes; racha', () => {
+  ok(xpDeRespuesta({ modo: 'escribir', acierto: true }) > xpDeRespuesta({ modo: 'test', acierto: true }));
+  ok(xpDeRespuesta({ modo: 'test', acierto: true, problematica: true }) > xpDeRespuesta({ modo: 'test', acierto: true }));
+  ok(xpDeRespuesta({ modo: 'test', acierto: true, combo: 10 }) > xpDeRespuesta({ modo: 'test', acierto: true }));
+  igual(xpDeRespuesta({ modo: 'escribir', acierto: false }), 0);
+  igual(nivelDe(0).nivel, 1); ok(nivelDe(100000).nivel > nivelDe(1000).nivel); ok(nivelDe(500).meta > nivelDe(0).meta, 'cada nivel cuesta más');
+  const g = { rachaActual: 0, rachaMaxima: 0, ultimoDiaActivo: null };
+  sumarDiaDeRacha(g, '2026-01-05'); sumarDiaDeRacha(g, '2026-01-06'); igual(g.rachaActual, 2);
+  igual(sumarDiaDeRacha(g, '2026-01-06'), false, 'no cuenta dos veces el mismo día');
+  igual(rachaVigente(g, '2026-01-07'), 2, 'ayer cuenta'); igual(rachaVigente(g, '2026-01-08'), 0, 'se pierde al saltarse un día');
+  sumarDiaDeRacha(g, '2026-01-09'); igual(g.rachaActual, 1); igual(g.rachaMaxima, 2);
+});
+
+// =====================================================================
+seccion('Simulación · usuario que estudia 60 días con un 85 % de acierto');
+
+function simular({ palabras, dias = 60, acierto = 0.85, ajustes = { nuevasDia: 10, maxRepasosDia: 100, tamSesion: 40 }, semilla = 42, saltar = [] }) {
+  const rand = M.crearRand(semilla);
+  const estados = new Map();
+  const diario = [];
+  const inicio = new Date(2026, 0, 5, 9, 0, 0).getTime();
+  for (let d = 0; d < dias; d++) {
+    let ahora = M.sumarDias(inicio, d), respuestas = 0, repasosHoy = 0, nuevasHoy = 0, guardia = 0;
+    if (saltar.includes(d)) { diario.push({ d, respuestas: 0, nuevas: 0, repasos: 0, salto: true }); continue; }
+    for (;;) {
+      const plan = armarSesion({ palabras, estados, ahora, ajustes, repasosHoy, rand });
+      if (!plan.items.length) {
+        const queda = [...estados.values()].some((e) => (e.fase === 'aprendiendo' || e.fase === 'reaprendiendo') && e.proximaRevision <= M.finDia(ahora));
+        if (!queda || ++guardia > 30) break;
+        ahora += 10 * M.MIN; continue;
+      }
+      for (const it of plan.items) {
+        const clave = M.claveEstado(it.palabraId, it.dir);
+        const e = estados.get(clave) || M.estadoVacio(it.palabraId, it.dir);
+        const bien = rand() < acierto;
+        const g = !bien ? 1 : rand() < 0.12 ? 2 : rand() < 0.15 ? 4 : 3;
+        if (it.origen === 'repaso') repasosHoy++; // el hueco de refuerzo va aparte del cupo
+        if (e.fase === 'nueva' && it.dir === 'de-es') nuevasHoy++;
+        estados.set(clave, SRS.siguiente(e, g, ahora, { rand }));
+        respuestas++; ahora += 9000;
+      }
+    }
+    diario.push({ d, respuestas, nuevas: nuevasHoy, repasos: repasosHoy, minutos: Math.round((respuestas * 9) / 60) });
+  }
+  let dominadas = 0, vistas = 0;
+  for (const p of palabras.values()) { const r = M.resumenPalabra(p, estados); if (r.dominada) dominadas++; if (r.vista) vistas++; }
+  return { diario, estados, dominadas, vistas };
+}
+
+let vocabularioReal = null;
+async function cargarVocabulario() {
+  if (vocabularioReal) return vocabularioReal;
+  const datos = leerJSON(await (await fetch('data/vokabeln.json')).text());
+  vocabularioReal = mapa(fusionar(new Map(), datos).guardar);
+  return vocabularioReal;
+}
+
+prueba('El vocabulario incluido (data/vokabeln.json) se importa sin errores', async () => {
+  const datos = leerJSON(await (await fetch('data/vokabeln.json')).text());
+  const r = fusionar(new Map(), datos);
+  igual(r.errores.length, 0, r.errores.slice(0, 3).join(' | ')); ok(r.nuevas > 1200, 'palabras: ' + r.nuevas); igual(r.guardar.length, new Set(r.guardar.map((p) => p.id)).size, 'ids únicos');
+  const irregulares = r.guardar.filter((p) => p.etiquetas.includes('verbo irregular'));
+  igual(irregulares.filter((p) => !M.formasVerbo(p)).map((p) => p.de).join(), '', 'verbos irregulares sin formas reconocibles');
+});
+prueba('60 días al 85 %: la carga diaria de repasos es razonable', async () => {
+  const palabras = await cargarVocabulario();
+  const { diario, dominadas, vistas } = simular({ palabras });
+  const media = (a) => a.reduce((s, x) => s + x.respuestas, 0) / a.length;
+  const ultimas = diario.slice(-14), maximo = Math.max(...diario.map((x) => x.respuestas));
+  const tabla = ['día  resp  nuevas  repasos  ~min'];
+  for (const x of diario) if (x.d < 7 || x.d % 5 === 4) tabla.push(`${String(x.d + 1).padStart(3)}  ${String(x.respuestas).padStart(4)}  ${String(x.nuevas).padStart(6)}  ${String(x.repasos).padStart(7)}  ${String(x.minutos).padStart(4)}`);
+  el('pre', '', tabla.join('\n') + `\n\nmedia total: ${media(diario).toFixed(0)} respuestas/día · media últimos 14 días: ${media(ultimas).toFixed(0)} · máximo: ${maximo}\n` +
+    `palabras empezadas: ${vistas} · dominadas (todas sus direcciones ≥ 21 días): ${dominadas}`);
+  igual(vistas, 600, 'se introducen 10 palabras nuevas al día');
+  ok(diario.every((x) => x.nuevas === 10), 'cupo diario de nuevas');
+  ok(media(ultimas) < 220, 'media de los últimos 14 días demasiado alta: ' + media(ultimas).toFixed(0));
+  ok(maximo < 300, 'pico demasiado alto: ' + maximo);
+  ok(diario.every((x) => x.repasos <= 100), 'se respeta el máximo de repasos al día');
+  ok(dominadas > 20, 'pocas dominadas: ' + dominadas);
+});
+prueba('Tras 5 días sin estudiar, los atrasos se reparten en vez de caer de golpe', async () => {
+  const palabras = await cargarVocabulario();
+  const { diario } = simular({ palabras, dias: 50, saltar: [40, 41, 42, 43, 44] });
+  const vuelta = diario.slice(45);
+  ok(vuelta.every((x) => x.repasos <= 100), 'ningún día supera el máximo: ' + vuelta.map((x) => x.repasos).join(','));
+  el('pre', '', 'repasos al volver (días 46–50): ' + vuelta.map((x) => x.repasos).join(', ') + ' · nuevas: ' + vuelta.map((x) => x.nuevas).join(', '));
+});
+
+// =====================================================================
+(async () => {
+  for (const c of pendientes) {
+    if (c.seccion) { el('h2', '', c.seccion); continue; }
+    total++;
+    try { await c.fn(); el('div', 'caso ok', '✓ ' + c.nombre); } catch (e) {
+      fallidas++;
+      el('div', 'caso mal', '✗ ' + c.nombre + ' — ' + e.message);
+      console.error(c.nombre, e);
+    }
+  }
+  const r = document.getElementById('resumen');
+  r.textContent = fallidas ? `✗ ${fallidas} de ${total} pruebas fallan` : `✓ ${total} pruebas correctas`;
+  r.className = fallidas ? 'mal' : 'ok';
+  r.dataset.estado = fallidas ? 'fallo' : 'ok';
+  document.title = r.textContent;
+})();
+</script>
+</body>
+</html>
