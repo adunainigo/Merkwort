@@ -102,7 +102,7 @@ export function abrirFicha(id) {
       return h('div', { class: 'dir-estado' },
         h('div', { class: 'fila entre' }, h('b', null, NOMBRE_DIR[dir]),
           h('span', { class: 'chip ' + (esProblematicoEstado(e) ? 'problematica' : e.fase === 'repaso' ? 'repaso' : 'aprendiendo') }, esProblematicoEstado(e) ? '⚠️ Problemática' : NOMBRE_FASE[e.fase])),
-        h('div', { class: 'fila', style: { margin: '6px 0' } }, h('span', { class: 'gris peq', style: { width: '128px', flex: 'none' } }, `Recuerdo hoy: ${pct(rec)}`), h('div', { style: { flex: 1 } }, barra(rec, rec > 0.85 ? 'ok' : ''))),
+        h('div', { class: 'fila', style: { margin: '6px 0' } }, h('span', { class: 'gris peq', style: { flex: 'none', whiteSpace: 'nowrap' } }, `Recuerdo hoy: ${pct(rec)}`), h('div', { style: { flex: 1 } }, barra(rec, rec > 0.85 ? 'ok' : ''))),
         h('div', { class: 'gris peq' }, `Estabilidad ${e.estabilidad < 10 ? e.estabilidad.toFixed(1) : Math.round(e.estabilidad)} días · dificultad ${e.dificultad.toFixed(1)}/10`),
         h('div', { class: 'gris peq' }, `Próxima revisión: ${e.fase === 'repaso' ? fechaRelativa(e.proximaRevision, ahora) : 'en esta sesión'} · ${e.repeticiones} respuestas · ${e.fallos} olvidos${tasa != null ? ` · ${pct(tasa)} últimas ${e.ultimas.length}` : ''}`));
     })));

@@ -33,7 +33,7 @@ export function render(cont) {
   }, '⚠️ Solo problemáticas');
   const r = resumenGlobal();
 
-  cont.append(
+  cont.appendChild(h('div', null,
     h('h1', { class: 'titulo' }, 'Jugar'),
     h('div', { class: 'filtros' }, filtrosComunes(filtros, () => nav.refrescar()), soloProbl),
     hayFiltros() ? h('div', { class: 'fila entre', style: { marginBottom: '8px' } },
@@ -47,5 +47,5 @@ export function render(cont) {
       h('span', { class: 'crece' }, h('div', { class: 'nom' }, m.nom), h('div', { class: 'des' }, m.des)),
       m.id === 'refuerzo' && r.problematicas.length ? h('span', { class: 'chip problematica' }, r.problematicas.length) : null,
       m.id === 'contrarreloj' && mem.global.recordContrarreloj ? h('span', { class: 'chip' }, '🏆 ' + mem.global.recordContrarreloj) : null)),
-  );
+  ));
 }

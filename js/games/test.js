@@ -10,15 +10,21 @@ import { ejecutarSesion } from './sesion.js';
 
 const textoOpcion = (p, dir) => (dir === 'de-es' ? p.es : conArticulo(p));
 
+/** Acepciones de una traducción: "terminar (estudios), acabar" → ["terminar", "acabar"]. */
+export function significados(es) {
+  return String(es || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(/[,;/]/).map((x) => x.replace(/[.!?¿¡]/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+
 /** Devuelve las palabras que se muestran como opciones (la correcta incluida), ya barajadas. */
 export function opcionesPara(palabra, dir, { n = 4, rand = Math.random, forzar = [] } = {}) {
-  const usados = new Set([textoOpcion(palabra, dir).toLowerCase(), palabra.es.toLowerCase(), palabra.de.toLowerCase()]);
+  const usados = new Set([palabra.de.toLowerCase(), ...significados(palabra.es)]);
   const elegidas = [];
   const probar = (p) => {
     if (!p || p.id === palabra.id || elegidas.length >= n - 1) return;
-    const t = textoOpcion(p, dir).toLowerCase();
-    if (usados.has(t) || usados.has(p.es.toLowerCase())) return;
-    usados.add(t); usados.add(p.es.toLowerCase());
+    // Se descartan sinónimos (misma traducción) para que solo haya una opción válida.
+    const claves = [p.de.toLowerCase(), ...significados(p.es)];
+    if (claves.some((c) => usados.has(c))) return;
+    claves.forEach((c) => usados.add(c));
     elegidas.push(p);
   };
   for (const id of [...forzar, ...confundidasCon(palabra.id)]) probar(mem.palabras.get(id));
