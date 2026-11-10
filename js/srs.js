@@ -151,10 +151,10 @@ export function estadoSabido(e, ahora, o = {}) {
 
 // ---------- Calificación automática ----------
 
-export const MODOS_FACILES = ['test', 'articulo'];
+export const MODOS_FACILES = ['test', 'articulo', 'relacion'];
 export const MODOS_ESCRITOS = ['escribir', 'verbos'];
 /** Tiempo medio de partida (ms) hasta tener datos propios. */
-export const TIEMPO_BASE = { test: 5000, articulo: 3500, escribir: 12000, verbos: 20000, tarjeta: 6000 };
+export const TIEMPO_BASE = { relacion: 8000, test: 5000, articulo: 3500, escribir: 12000, verbos: 20000, tarjeta: 6000 };
 
 /**
  * Calificación 1–4 a partir del modo de juego y del tiempo de respuesta.

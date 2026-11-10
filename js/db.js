@@ -4,12 +4,18 @@
 
 import { claveEstado, estadoVacio } from './modelo.js';
 
-export const VERSION_BD = 1;
-export const ALMACENES = ['palabras', 'estado', 'historial', 'estadisticas', 'retos', 'ajustes'];
+export const VERSION_BD = 2;
+/** Almacenes con datos del usuario (se exportan, restauran y borran con "Borrar todo"). */
+export const ALMACENES = ['palabras', 'estado', 'historial', 'estadisticas', 'retos', 'ajustes', 'relaciones'];
+/** Copias automáticas previas a cada migración. Fuera de ALMACENES a propósito: nada las vacía salvo la poda. */
+export const ALMACEN_COPIAS = 'backups';
+export const MAX_COPIAS = 3;
 
 /**
  * Migraciones: MIGRACIONES[n] lleva la base de la versión n a la n+1.
- * Para cambiar el esquema, añade una función y sube VERSION_BD.
+ * REGLAS (ver CLAUDE.md): sube VERSION_BD y añade una función aquí; nunca borres almacenes ni
+ * datos del usuario; si cambia el formato, transforma los datos dentro de la misma migración.
+ * Antes de ejecutarlas, `copiarAntesDeMigrar` guarda una copia completa en `backups`.
  */
 const MIGRACIONES = [
   (db) => {
@@ -23,11 +29,49 @@ const MIGRACIONES = [
     db.createObjectStore('retos', { keyPath: 'semana' });
     db.createObjectStore('ajustes', { keyPath: 'clave' });
   },
+  // v1 → v2: sinónimos y antónimos, y almacén de copias automáticas. Solo añade almacenes.
+  (db) => {
+    if (!db.objectStoreNames.contains('relaciones')) db.createObjectStore('relaciones', { keyPath: 'id' });
+    asegurarAlmacenCopias(db);
+  },
 ];
+
+function asegurarAlmacenCopias(db) {
+  if (!db.objectStoreNames.contains(ALMACEN_COPIAS)) db.createObjectStore(ALMACEN_COPIAS, { keyPath: 'id', autoIncrement: true });
+}
+
+/**
+ * Dentro de onupgradeneeded y antes de cualquier migración: lee todos los almacenes tal como
+ * están y guarda la copia en `backups`, conservando las MAX_COPIAS más recientes. Las lecturas
+ * se encolan antes que cualquier petición de las migraciones, así que ven los datos sin migrar.
+ * Si algo falla, la transacción entera se cancela y la base se queda en la versión anterior.
+ */
+function copiarAntesDeMigrar(db, tx, desde, hasta) {
+  asegurarAlmacenCopias(db);
+  const nombres = [...db.objectStoreNames].filter((n) => n !== ALMACEN_COPIAS);
+  const datos = {};
+  let pendientes = nombres.length;
+  const guardar = () => {
+    const st = tx.objectStore(ALMACEN_COPIAS);
+    st.add({ fecha: Date.now(), desdeVersion: desde, haciaVersion: hasta, datos });
+    st.getAllKeys().onsuccess = (ev) => {
+      const claves = ev.target.result.sort((a, b) => a - b);
+      for (const k of claves.slice(0, Math.max(0, claves.length - MAX_COPIAS))) st.delete(k);
+    };
+  };
+  if (!pendientes) { guardar(); return; }
+  for (const n of nombres) {
+    tx.objectStore(n).getAll().onsuccess = (ev) => {
+      datos[n] = ev.target.result;
+      if (--pendientes === 0) guardar();
+    };
+  }
+}
 
 export const AJUSTES_DEFECTO = Object.freeze({
   clave: 'ajustes', nuevasDia: 10, objetivoDiario: 20, retencion: 0.9, intervaloMax: 180,
   maxRepasosDia: 100, tamSesion: 20, vibracion: true, ultimaCopia: 0, datosCargados: false, instalado: 0,
+  nivelActual: 'B1.1', revisionDatos: 1, revisionRelaciones: 0,
 });
 
 export const GLOBAL_DEFECTO = Object.freeze({
@@ -35,14 +79,14 @@ export const GLOBAL_DEFECTO = Object.freeze({
   recordContrarreloj: 0, partidasContrarreloj: 0, totalRespuestas: 0, comboMax: 0, retosCompletados: 0, sabidas: 0,
 });
 
-const AGREGADOS_DEFECTO = () => ({ clave: 'agregados', porDir: {}, porTipo: {}, porTema: {}, porLektion: {}, articulos: {}, tiempos: {} });
+const AGREGADOS_DEFECTO = () => ({ clave: 'agregados', porDir: {}, porTipo: {}, porTema: {}, porLektion: {}, porNivel: {}, articulos: {}, tiempos: {} });
 
 let bd = null;
 
 /** Datos en memoria. */
 export const mem = {
   palabras: new Map(), estados: new Map(), ajustes: { ...AJUSTES_DEFECTO }, global: { ...GLOBAL_DEFECTO },
-  agregados: AGREGADOS_DEFECTO(), confusiones: { clave: 'confusiones', pares: {} }, dias: new Map(), version: 0,
+  agregados: AGREGADOS_DEFECTO(), confusiones: { clave: 'confusiones', pares: {} }, dias: new Map(), relaciones: [], version: 0,
 };
 
 const prom = (req) => new Promise((ok, err) => { req.onsuccess = () => ok(req.result); req.onerror = () => err(req.error); });
@@ -52,7 +96,9 @@ export function abrir(nombre = 'vokabeln') {
   return new Promise((ok, err) => {
     const req = indexedDB.open(nombre, VERSION_BD);
     req.onupgradeneeded = (ev) => {
-      for (let v = ev.oldVersion; v < VERSION_BD; v++) MIGRACIONES[v](req.result, req.transaction);
+      const db = req.result, tx = req.transaction;
+      if (ev.oldVersion > 0) copiarAntesDeMigrar(db, tx, ev.oldVersion, VERSION_BD);
+      for (let v = ev.oldVersion; v < VERSION_BD; v++) MIGRACIONES[v](db, tx);
     };
     req.onsuccess = () => { bd = req.result; bd.onversionchange = () => bd.close(); ok(bd); };
     req.onerror = () => err(req.error);
@@ -71,7 +117,8 @@ const todos = (almacen) => prom(bd.transaction(almacen).objectStore(almacen).get
 
 /** Carga en memoria todo lo necesario para trabajar. */
 export async function cargar() {
-  const [palabras, estados, stats, ajustes] = await Promise.all([todos('palabras'), todos('estado'), todos('estadisticas'), todos('ajustes')]);
+  const [palabras, estados, stats, ajustes, relaciones] = await Promise.all([todos('palabras'), todos('estado'), todos('estadisticas'), todos('ajustes'), todos('relaciones')]);
+  mem.relaciones = relaciones;
   mem.palabras = new Map(palabras.map((p) => [p.id, p]));
   mem.estados = new Map(estados.map((e) => [e.clave, e]));
   mem.ajustes = { ...AJUSTES_DEFECTO, ...(ajustes.find((a) => a.clave === 'ajustes') || {}) };
@@ -105,6 +152,28 @@ export function historialDesde(ms) {
 }
 
 export const contarHistorial = () => prom(bd.transaction('historial').objectStore('historial').count());
+
+export async function guardarRelaciones(lista) {
+  const tx = bd.transaction('relaciones', 'readwrite');
+  for (const r of lista) tx.objectStore('relaciones').put(r);
+  await finTx(tx);
+  mem.relaciones = await todos('relaciones');
+  mem.version++;
+}
+
+/** Copias automáticas hechas antes de migrar, de la más reciente a la más antigua (sin los datos). */
+export async function listarCopiasAuto() {
+  const lista = await todos(ALMACEN_COPIAS);
+  return lista.map((c) => ({ id: c.id, fecha: c.fecha, desdeVersion: c.desdeVersion, haciaVersion: c.haciaVersion, palabras: (c.datos.palabras || []).length, historial: (c.datos.historial || []).length }))
+    .sort((a, b) => b.fecha - a.fecha);
+}
+
+/** Restaura una copia automática. Los almacenes que no existían en esa versión quedan vacíos. */
+export async function restaurarCopiaAuto(id) {
+  const c = await prom(bd.transaction(ALMACEN_COPIAS).objectStore(ALMACEN_COPIAS).get(id));
+  if (!c) throw new Error('Esa copia ya no existe');
+  return restaurar(c.datos);
+}
 
 export const leerRetos = (semana) => prom(bd.transaction('retos').objectStore('retos').get(semana));
 export const todosRetos = () => todos('retos');

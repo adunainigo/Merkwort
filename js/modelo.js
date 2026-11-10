@@ -9,6 +9,26 @@ export const NOMBRE_DIR = { 'de-es': 'Alemán → español', 'es-de': 'Español 
 export const TIPOS = ['sustantivo', 'verbo', 'adjetivo', 'adverbio', 'expresion', 'otro'];
 export const ARTICULOS = ['der', 'die', 'das'];
 
+// ---------- Niveles (MCER) ----------
+
+/** Ordena niveles "A2.2" < "B1.1" < "B1.2"; sin nivel al final. */
+export function compararNiveles(a, b) {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return String(a).localeCompare(String(b), 'es', { numeric: true });
+}
+
+/** Clave de lección única entre niveles: "A2.2|3". */
+export const claveLeccion = (p) => `${p.nivel || ''}|${p.lektion}`;
+
+/** "A2.2 · Lektion 3" a partir de la clave. */
+export function nombreLeccion(clave, conNivel = true) {
+  const [nivel, lek] = String(clave).split('|');
+  const l = lek === 'null' || lek === '' ? 'Sin lección' : 'Lektion ' + lek;
+  return conNivel && nivel ? `${nivel} · ${l}` : l;
+}
+
 /** Estabilidad (días) a partir de la cual una dirección cuenta como dominada. */
 export const UMBRAL_DOMINADA = 21;
 /** Estabilidad de de→es que desbloquea el resto de direcciones. */

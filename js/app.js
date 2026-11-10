@@ -1,7 +1,7 @@
 // Arranque de la app y navegación entre pantallas.
 
 import { abrir, cargar, mem, guardarAjustes } from './db.js';
-import { cargaInicial } from './import.js';
+import { cargaInicial, actualizarDatosIncluidos } from './import.js';
 import { asegurarSemana } from './challenges.js';
 import { contextoRetos } from './history.js';
 import { h, s, $, vaciar, nav, toast } from './ui.js';
@@ -103,6 +103,8 @@ async function arrancar() {
         setTimeout(() => toast('No se pudo cargar el vocabulario inicial. Impórtalo desde Ajustes.', { duracion: 5000 }), 400);
       }
     }
+    const rev = await actualizarDatosIncluidos();
+    if (rev.palabras) setTimeout(() => toast(`🗂️ Vocabulario reorganizado (${rev.palabras} palabras)`), 900);
     await asegurarSemana(contextoRetos);
     pintarPestanas();
     pintar();

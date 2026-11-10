@@ -1,7 +1,7 @@
 // Planificador: decide qué se pregunta en cada sesión a partir del estado de cada palabra.
 // Funciones puras: reciben los datos (Map de palabras y de estados) y devuelven la lista de preguntas.
 
-import { claveEstado, dirsDe, esProblematicoEstado, finDia, inicioDia, MIN, UMBRAL_DESBLOQUEO, DIA } from './modelo.js';
+import { claveLeccion, compararNiveles, claveEstado, dirsDe, esProblematicoEstado, finDia, inicioDia, MIN, UMBRAL_DESBLOQUEO, DIA } from './modelo.js';
 import { recuperabilidad } from './srs.js';
 
 /** Con más repasos pendientes que esto no se introducen palabras nuevas. */
@@ -12,7 +12,12 @@ export const HUECO_REFUERZO = 3;
 const MARGEN_APRENDIZAJE = 20 * MIN;
 
 export function pasaFiltros(p, f = {}) {
-  if (f.lektion != null && f.lektion !== '' && String(p.lektion) !== String(f.lektion)) return false;
+  if (f.nivel && p.nivel !== f.nivel) return false;
+  if (f.lektion != null && f.lektion !== '') {
+    // "A2.2|3" (lección de un nivel concreto) o solo "3" (cualquier nivel)
+    if (String(f.lektion).includes('|')) { if (claveLeccion(p) !== String(f.lektion)) return false; }
+    else if (String(p.lektion) !== String(f.lektion)) return false;
+  }
   if (f.tema && p.tema !== f.tema) return false;
   if (f.tipo && p.tipo !== f.tipo) return false;
   if (f.etiqueta && !(p.etiquetas || []).includes(f.etiqueta)) return false;
@@ -107,7 +112,7 @@ export function armarSesion({ palabras, estados, ahora, ajustes = {}, repasosHoy
 
   // Lo ya empezado hoy cuenta para el cupo diario aunque esté fuera del filtro.
   for (const e of estados.values()) {
-    if (e.primeraRevision >= hoy0) { if (e.dir === 'de-es') nuevasHoy++; else desbloqueosHoy++; }
+    if (e.primeraRevision >= hoy0 && e.repeticiones > 0) { if (e.dir === 'de-es') nuevasHoy++; else desbloqueosHoy++; }
   }
 
   let orden = 0;
@@ -147,8 +152,13 @@ export function armarSesion({ palabras, estados, ahora, ajustes = {}, repasosHoy
   const repasosHoyLista = repasos.slice(0, cupoRepasos);
 
   // 2. Palabras nuevas (si la cola no está desbordada) y direcciones recién desbloqueadas.
-  const hayAtasco = pendientes > LIMITE_ATRASO;
-  const porLeccion = (a, b) => (a.p.lektion ?? 999) - (b.p.lektion ?? 999) || a.orden - b.orden;
+  // Solo los repasos atrasados (de días anteriores) bloquean las palabras nuevas.
+  const hayAtasco = atrasadas > LIMITE_ATRASO;
+  // Primero el nivel que estás cursando; después el resto, de menor a mayor nivel; dentro, por lección.
+  const nivelActual = ajustes.nivelActual;
+  const rango = (p) => (nivelActual && p.nivel === nivelActual ? 0 : 1);
+  const porLeccion = (a, b) => rango(a.p) - rango(b.p) || compararNiveles(a.p.nivel, b.p.nivel)
+    || (a.p.lektion ?? 999) - (b.p.lektion ?? 999) || a.orden - b.orden;
   nuevas.sort(porLeccion);
   desbloqueos.sort((a, b) => b.s - a.s || a.orden - b.orden);
   const cupoNuevas = hayAtasco || soloProbl ? 0 : Math.max(0, nuevasDia - nuevasHoy);

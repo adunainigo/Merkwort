@@ -46,6 +46,10 @@ export const PLANTILLAS = [
       : { meta: 8, texto: 'Consigue 8 puntos en Contrarreloj', xp: 80, maximo: true }),
   },
   {
+    tipo: 'relaciones', evento: 'tableroOk', icono: '🧩', peso: (c) => (c.relaciones >= 10 ? 2 : 0),
+    crear: () => ({ meta: 6, texto: 'Resuelve 6 tableros de sinónimos o antónimos', xp: 90 }),
+  },
+  {
     tipo: 'xp', evento: 'xp', icono: '✨', peso: () => 1.5,
     crear: (c) => { const meta = redondear(Math.max(300, c.xpSemana * 1.1), 50); return { meta, texto: `Gana ${meta} XP`, xp: 70 }; },
   },
@@ -55,7 +59,7 @@ export const PLANTILLAS = [
 export function generarRetos(ctx, rand = Math.random) {
   const c = {
     repasosSemana: 0, dominadasSemana: 0, problematicas: 0, tasaArticulos: null, sustantivosVistos: 0,
-    tasaEsDe: null, escritasSemana: 0, record: 0, xpSemana: 0, diasActivos: 0, vistas: 0, ...ctx,
+    tasaEsDe: null, escritasSemana: 0, record: 0, xpSemana: 0, diasActivos: 0, vistas: 0, relaciones: 0, ...ctx,
   };
   const candidatas = PLANTILLAS.map((p) => ({ p, peso: p.peso(c) })).filter((x) => x.peso > 0);
   const elegidas = [];

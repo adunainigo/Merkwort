@@ -16,7 +16,7 @@ export function nivelDe(xp) {
 
 // ---------- XP ----------
 
-export const XP_MODO = { tarjeta: 4, test: 5, articulo: 5, escribir: 12, verbos: 15 };
+export const XP_MODO = { relacion: 3, tarjeta: 4, test: 5, articulo: 5, escribir: 12, verbos: 15 };
 
 /** XP de una respuesta: más en modos difíciles y palabras problemáticas, con bonus por aciertos seguidos. */
 export function xpDeRespuesta({ modo, acierto, calificacion = 3, problematica = false, combo = 0 }) {

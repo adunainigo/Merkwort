@@ -3,11 +3,11 @@
 // pantalla necesita recorrer el historial completo.
 
 import {
-  mem, estadoDe, diaDe, guardarRespuesta, guardarEstados, borrarEstados,
+  mem, estadoDe, diaDe, guardarRespuesta, guardarEstados, borrarEstados, historialDesde,
 } from './db.js';
 import {
   claveEstado, dirsDe, dirsDominio, esProblematicoEstado, estadoVacio, fechaLocal, resumenPalabra,
-  inicioDia, sumarDias, DIA, ARTICULOS, lunesDe,
+  inicioDia, sumarDias, DIA, ARTICULOS, lunesDe, claveLeccion,
 } from './modelo.js';
 import { siguiente, calificar, aplazarAManana, estadoSabido, recuperabilidad } from './srs.js';
 import { xpDeRespuesta, sumarDiaDeRacha, comprobarMedallas, nivelDe } from './stats.js';
@@ -80,7 +80,8 @@ export async function registrarRespuesta(r) {
   sumar(ag.porDir, r.dir, r.acierto);
   sumar(ag.porTipo, p.tipo, r.acierto);
   sumar(ag.porTema, p.tema, r.acierto);
-  sumar(ag.porLektion, p.lektion ?? 'sin', r.acierto);
+  sumar(ag.porLektion, claveLeccion(p), r.acierto);
+  sumar(ag.porNivel, p.nivel || 'sin', r.acierto);
   if (r.dir === 'articulo' && r.articuloPuesto && ARTICULOS.includes(p.articulo)) {
     const fila = ag.articulos[p.articulo] || (ag.articulos[p.articulo] = { der: 0, die: 0, das: 0 });
     fila[r.articuloPuesto] = (fila[r.articuloPuesto] || 0) + 1;
@@ -147,13 +148,35 @@ export async function registrarRespuesta(r) {
 
 const nivelDeXp = (xp) => nivelDe(xp).nivel;
 
+/**
+ * Recalcula desde el historial los agregados que dependen de los datos de cada palabra
+ * (tema, nivel, tipo y lección), p. ej. tras reorganizar los temas. Se hace una sola vez.
+ */
+export async function recalcularAgregados() {
+  const ag = mem.agregados;
+  ag.porTema = {}; ag.porNivel = {}; ag.porTipo = {}; ag.porLektion = {};
+  for (const r of await historialDesde(0)) {
+    const p = mem.palabras.get(r.palabraId);
+    if (!p) continue;
+    const ok = r.resultado === 'acierto';
+    sumar(ag.porTema, p.tema, ok); sumar(ag.porNivel, p.nivel || 'sin', ok);
+    sumar(ag.porTipo, p.tipo, ok); sumar(ag.porLektion, claveLeccion(p), ok);
+  }
+  await guardarRespuesta({});
+}
+
+/** Tablero de sinónimos/antónimos resuelto: XP extra y progreso de retos. */
+export async function registrarTablero({ errores = 0 } = {}, ahora = Date.now()) {
+  return sumarXp(errores ? 8 : 15, ahora, [{ evento: 'tableroOk' }]);
+}
+
 /** XP extra (récord de Contrarreloj, etc.). */
-export async function sumarXp(cantidad, ahora = Date.now()) {
+export async function sumarXp(cantidad, ahora = Date.now(), eventos = []) {
   const hoy = fechaLocal(ahora);
   const dia = { ...diaDe(hoy) };
   dia.xp += cantidad;
   mem.global.xp += cantidad;
-  const retos = await registrarEventos([{ evento: 'xp', cantidad }], ahora);
+  const retos = await registrarEventos([{ evento: 'xp', cantidad }, ...eventos], ahora);
   for (const reto of retos) { mem.global.xp += reto.xp; dia.xp += reto.xp; mem.global.retosCompletados++; }
   await guardarRespuesta({ dia });
   return retos;
@@ -314,5 +337,6 @@ export function contextoRetos(ahora = Date.now()) {
     problematicas: r.problematicas.length, vistas: r.vistas, sustantivosVistos: r.sustantivosVistos,
     tasaArticulos: tasa(ag.porDir.articulo), tasaEsDe: tasa(ag.porDir['es-de']),
     escritasSemana: Math.round(pasada.aciertos * 0.3), record: mem.global.recordContrarreloj || 0,
+    relaciones: mem.relaciones.length,
   };
 }
