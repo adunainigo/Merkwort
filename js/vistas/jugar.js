@@ -11,6 +11,7 @@ import * as articulos from '../games/articulos.js';
 import * as contrarreloj from '../games/contrarreloj.js';
 import * as verbos from '../games/verbos.js';
 import * as refuerzo from '../games/refuerzo.js';
+import * as relaciones from '../games/relaciones.js';
 
 export const MODOS = [
   { id: 'tarjetas', ico: '🃏', nom: 'Tarjetas', des: 'Gira la tarjeta y evalúate', ir: (f) => tarjetas.iniciar(f) },
@@ -18,6 +19,8 @@ export const MODOS = [
   { id: 'escribir', ico: '✍️', nom: 'Escribir', des: 'Escribe la palabra en alemán', ir: (f) => escribir.iniciar(f) },
   { id: 'articulos', ico: '🎨', nom: 'Der · Die · Das', des: 'Toca el artículo correcto', ir: (f) => articulos.iniciar(f) },
   { id: 'contrarreloj', ico: '⏱️', nom: 'Contrarreloj', des: '60 segundos de preguntas mezcladas', ir: (f) => contrarreloj.iniciar(f) },
+  { id: 'sinonimos', ico: '🧩', nom: 'Agrupa sinónimos', des: 'Junta las palabras que significan lo mismo', ir: (f) => relaciones.iniciar('sinonimos', f) },
+  { id: 'antonimos', ico: '☯️', nom: 'Une antónimos', des: 'Empareja cada palabra con su contrario', ir: (f) => relaciones.iniciar('antonimos', f) },
   { id: 'verbos', ico: '🔀', nom: 'Verbos irregulares', des: 'Presente y perfecto: fährt, ist gefahren', ir: (f) => verbos.iniciar(f) },
   { id: 'refuerzo', ico: '🩹', nom: 'Refuerzo', des: 'Tus palabras problemáticas y confusiones', ir: () => refuerzo.iniciar() },
 ];

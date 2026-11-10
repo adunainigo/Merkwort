@@ -1,6 +1,7 @@
 // Utilidades de interfaz: creación de nodos, capas, avisos, diálogos, confeti y gráficos SVG.
 
 import { mem } from './db.js';
+import { claveLeccion, compararNiveles, nombreLeccion } from './modelo.js';
 
 /** Navegación: app.js rellena estas funciones al arrancar. */
 export const nav = { ir() {}, refrescar() {}, abrirFicha() {} };
@@ -170,8 +171,13 @@ export const NOMBRE_TIPO = { sustantivo: 'Sustantivo', verbo: 'Verbo', adjetivo:
 /** Fila de filtros comunes (lección, tema, tipo, etiqueta). `f` se modifica en el sitio. */
 export function filtrosComunes(f, alCambiar) {
   const set = (k) => (v) => { if (v === '') delete f[k]; else f[k] = v; alCambiar(); };
+  const niveles = valoresDe('nivel').sort(compararNiveles);
+  // Las lecciones se distinguen por nivel ("A2.2 · Lektion 3" ≠ "B1.1 · Lektion 3").
+  const lecciones = [...new Set([...mem.palabras.values()].filter((p) => p.lektion != null && (!f.nivel || p.nivel === f.nivel)).map(claveLeccion))]
+    .sort((a, b) => compararNiveles(a.split('|')[0], b.split('|')[0]) || Number(a.split('|')[1]) - Number(b.split('|')[1]));
   return [
-    selector('Lección', valoresDe('lektion').map((l) => [l, 'Lektion ' + l]), f.lektion, set('lektion')),
+    niveles.length ? selector('Nivel', niveles, f.nivel, (v) => { if (v === '') delete f.nivel; else f.nivel = v; delete f.lektion; alCambiar(); }) : null,
+    selector('Lección', lecciones.map((c) => [c, nombreLeccion(c, niveles.length > 1 && !f.nivel)]), f.lektion, set('lektion')),
     selector('Tema', valoresDe('tema'), f.tema, set('tema')),
     selector('Tipo', valoresDe('tipo').map((t) => [t, NOMBRE_TIPO[t] || t]), f.tipo, set('tipo')),
     selector('Etiqueta', valoresDe('etiquetas'), f.etiqueta, set('etiqueta')),

@@ -7,7 +7,7 @@ import { reiniciarProgreso, marcarSabida, confundidasCon } from '../history.js';
 import { h, s, capa, hoja, confirmar, toast, nav, pct, barra, deConColor, NOMBRE_TIPO } from '../ui.js';
 
 const NOMBRE_FASE = { nueva: 'Sin empezar', aprendiendo: 'Aprendiendo', repaso: 'En repaso', reaprendiendo: 'Reaprendiendo' };
-const NOMBRE_MODO = { repaso: 'Repaso', tarjetas: 'Tarjetas', test: 'Test', escribir: 'Escribir', articulos: 'Der·Die·Das', contrarreloj: 'Contrarreloj', verbos: 'Verbos', refuerzo: 'Refuerzo' };
+const NOMBRE_MODO = { repaso: 'Repaso', tarjetas: 'Tarjetas', test: 'Test', escribir: 'Escribir', articulos: 'Der·Die·Das', contrarreloj: 'Contrarreloj', verbos: 'Verbos', refuerzo: 'Refuerzo', sinonimos: 'Sinónimos', antonimos: 'Antónimos' };
 
 /** Línea de tiempo: un punto por respuesta (verde acierto, rojo fallo), una fila por dirección. */
 function graficoHistorial(registros, dirs) {
@@ -45,6 +45,7 @@ function editar(p, alGuardar) {
       h('div', null, h('label', { class: 'etiqueta-campo' }, 'Lección'), c('lektion', p.lektion, { type: 'number', inputmode: 'numeric' })),
       h('div', null, h('label', { class: 'etiqueta-campo' }, 'Tema'), c('tema', p.tema))),
     h('label', { class: 'etiqueta-campo' }, 'Etiquetas (separadas por comas)'), c('etiquetas', (p.etiquetas || []).join(', ')),
+    h('label', { class: 'ajuste' }, h('span', { class: 'crece' }, 'Compleja (no pasa a repaso al dar un nivel por conocido)'), h('input', { type: 'checkbox', name: 'compleja', checked: !!p.compleja, style: { width: '24px', height: '24px' } })),
     h('label', { class: 'ajuste' }, h('span', { class: 'crece' }, 'Marcar como "por revisar"'), h('input', { type: 'checkbox', name: 'revisar', checked: !!p.revisar, style: { width: '24px', height: '24px' } })),
     h('button', { class: 'btn primario ancho', type: 'submit', style: { marginTop: '10px' } }, 'Guardar'));
   const hj = hoja('Editar palabra', form);
@@ -57,7 +58,7 @@ function editar(p, alGuardar) {
     // El identificador no cambia al editar, para conservar el progreso y el historial.
     await guardarPalabras([{
       ...p, de: txt('de'), articulo: txt('articulo'), tipo: txt('tipo') || 'otro', plural: txt('plural'), es: txt('es'), ejemplo: txt('ejemplo'), notas: txt('notas'),
-      lektion: lek == null ? null : Number(lek), tema: txt('tema'), etiquetas: (txt('etiquetas') || '').split(',').map((x) => x.trim()).filter(Boolean), revisar: d.get('revisar') === 'on',
+      lektion: lek == null ? null : Number(lek), tema: txt('tema'), etiquetas: (txt('etiquetas') || '').split(',').map((x) => x.trim()).filter(Boolean), revisar: d.get('revisar') === 'on', compleja: d.get('compleja') === 'on', editada: Date.now(),
     }]);
     hj.cerrar();
     toast('Palabra guardada');
@@ -85,6 +86,8 @@ export function abrirFicha(id) {
         r.problematica ? h('span', { class: 'chip problematica' }, '⚠️ Problemática') : null,
         h('span', { class: 'chip' }, NOMBRE_TIPO[p.tipo] || p.tipo),
         p.lektion != null ? h('span', { class: 'chip' }, 'Lektion ' + p.lektion) : null,
+        p.nivel ? h('span', { class: 'chip nivel' }, p.nivel) : null,
+        p.compleja ? h('span', { class: 'chip problematica' }, '🧠 Compleja') : null,
         p.revisar ? h('span', { class: 'chip aprendiendo' }, '✏️ Por revisar') : null),
       h('div', { class: 'ficha-de' }, deConColor(p)),
       p.plural ? h('div', { class: 'gris' }, 'Plural: die ' + p.plural) : null,
@@ -92,7 +95,7 @@ export function abrirFicha(id) {
       formas ? h('div', { style: { marginTop: '8px' } }, h('b', null, 'er ' + formas.presente), ' · ', h('b', null, formas.perfecto)) : null,
       p.ejemplo ? p.ejemplo.split(' | ').map((e) => h('div', { class: 'ejemplo gris', style: { marginTop: '8px', fontStyle: 'italic' } }, '„' + e + '“')) : null,
       p.notas ? h('div', { class: 'notas', style: { marginTop: '8px' } }, '📝 ' + p.notas) : null,
-      h('div', { class: 'gris peq', style: { marginTop: '10px' } }, [p.tema, (p.etiquetas || []).join(', '), p.nivel].filter(Boolean).join(' · '))));
+      h('div', { class: 'gris peq', style: { marginTop: '10px' } }, [p.tema, (p.etiquetas || []).join(', ')].filter(Boolean).join(' · '))));
 
     cuerpo.appendChild(h('div', { class: 'subtitulo' }, 'Estado por dirección'));
     cuerpo.appendChild(h('div', { class: 'tarjeta' }, dirs.map((dir) => {
@@ -104,7 +107,8 @@ export function abrirFicha(id) {
           h('span', { class: 'chip ' + (esProblematicoEstado(e) ? 'problematica' : e.fase === 'repaso' ? 'repaso' : 'aprendiendo') }, esProblematicoEstado(e) ? '⚠️ Problemática' : NOMBRE_FASE[e.fase])),
         h('div', { class: 'fila', style: { margin: '6px 0' } }, h('span', { class: 'gris peq', style: { flex: 'none', whiteSpace: 'nowrap' } }, `Recuerdo hoy: ${pct(rec)}`), h('div', { style: { flex: 1 } }, barra(rec, rec > 0.85 ? 'ok' : ''))),
         h('div', { class: 'gris peq' }, `Estabilidad ${e.estabilidad < 10 ? e.estabilidad.toFixed(1) : Math.round(e.estabilidad)} días · dificultad ${e.dificultad.toFixed(1)}/10`),
-        h('div', { class: 'gris peq' }, `Próxima revisión: ${e.fase === 'repaso' ? fechaRelativa(e.proximaRevision, ahora) : 'en esta sesión'} · ${e.repeticiones} respuestas · ${e.fallos} olvidos${tasa != null ? ` · ${pct(tasa)} últimas ${e.ultimas.length}` : ''}`));
+        h('div', { class: 'gris peq' }, `Próxima revisión: ${e.fase === 'repaso' ? fechaRelativa(e.proximaRevision, ahora) : 'en esta sesión'} · ${e.repeticiones} respuestas · ${e.fallos} olvidos${tasa != null ? ` · ${pct(tasa)} últimas ${e.ultimas.length}` : ''}`),
+        e.origen === 'nivel' && !e.repeticiones ? h('div', { class: 'gris peq' }, '📘 Pasada a repaso al dar su nivel por conocido; aún sin comprobar.') : null);
     })));
 
     const conf = confundidasCon(id).slice(0, 4).map((x) => mem.palabras.get(x));

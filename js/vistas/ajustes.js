@@ -1,11 +1,73 @@
 // Ajustes: parámetros de aprendizaje, importación, copias de seguridad, borrado y versión.
 
-import { mem, guardarAjustes, borrarTodo, contarHistorial } from '../db.js';
+import { mem, guardarAjustes, borrarTodo, contarHistorial, listarCopiasAuto, restaurarCopiaAuto } from '../db.js';
+import { resumenNiveles, pasarNivelARepaso, deshacerNivel, estadosParaNivel, cargaEstimada } from '../niveles.js';
 import { importarArchivo, importarTexto, importarURL, textoResumen, exportarCopia, restaurarCopia, validarCopia } from '../import.js';
 import { asegurarSemana, olvidarSemana } from '../challenges.js';
 import { contextoRetos } from '../history.js';
-import { fechaRelativa } from '../modelo.js';
+import { fechaRelativa, compararNiveles } from '../modelo.js';
 import { h, hoja, confirmar, avisar, toast, nav } from '../ui.js';
+
+const NIVELES_MCER = ['A1.1', 'A1.2', 'A2.1', 'A2.2', 'B1.1', 'B1.2', 'B2.1', 'B2.2', 'C1.1', 'C1.2'];
+
+function seccionNiveles() {
+  const lista = resumenNiveles();
+  const opciones = [...new Set([...NIVELES_MCER, ...lista.map((r) => r.nivel).filter(Boolean)])].sort(compararNiveles);
+  const sel = h('select', { class: 'campo', style: { width: 'auto', minWidth: '110px' }, 'aria-label': 'Nivel que estás cursando', onchange: async () => { await guardarAjustes({ nivelActual: sel.value }); toast('Nivel actual: ' + sel.value); nav.refrescar(); } },
+    opciones.map((n) => h('option', { value: n, selected: n === mem.ajustes.nivelActual }, n)));
+  const filas = lista.map((r) => {
+    const anterior = compararNiveles(r.nivel, mem.ajustes.nivelActual) < 0;
+    const pasar = async () => {
+      const prev = estadosParaNivel({ palabras: mem.palabras, estados: mem.estados, nivel: r.nivel, ahora: Date.now() });
+      if (!prev.estados.length) { toast('No queda nada que pasar a repaso en ' + r.nivel); return; }
+      const ok = await confirmar(`Dar ${r.nivel} por conocido`,
+        `${prev.palabras} palabras pasan a repaso: no saldrán como nuevas, sino repartidas en los próximos meses (≈${cargaEstimada(prev.estados)} repasos al día) para comprobar que las sabes. ` +
+        `Las ${prev.complejas} complejas 🧠 seguirán como nuevas. Las que ya habías empezado no cambian. Puedes deshacerlo mientras no las respondas.`, { ok: 'Pasar a repaso' });
+      if (!ok) return;
+      const res = await pasarNivelARepaso(r.nivel);
+      toast(`📘 ${res.palabras} palabras de ${r.nivel} en repaso`);
+      nav.refrescar();
+    };
+    const deshacer = async () => {
+      if (!(await confirmar('Deshacer', `Las palabras de ${r.nivel} que pasaste a repaso y aún no has respondido volverán a estar como nuevas.`, { ok: 'Deshacer', peligro: true }))) return;
+      const n = await deshacerNivel(r.nivel);
+      toast(`${n} direcciones vuelven a nuevas`);
+      nav.refrescar();
+    };
+    return h('div', { class: 'ajuste', style: { flexWrap: 'wrap' } },
+      h('div', { class: 'crece' },
+        h('div', { class: 'negrita' }, r.nivel || 'Sin nivel', r.nivel === mem.ajustes.nivelActual ? h('span', { class: 'chip nivel', style: { marginLeft: '8px' } }, 'actual') : null),
+        h('div', { class: 'gris peq' }, `${r.total} palabras · ${r.nuevas} sin empezar · ${r.dominadas} dominadas · ${r.complejas} complejas 🧠`)),
+      r.nivel && r.sinEmpezarFacil ? h('button', { class: 'btn' + (anterior ? ' primario' : ''), style: { minHeight: '44px' }, onclick: pasar }, 'Ya lo conozco') : null,
+      r.nivel && r.sembradas ? h('button', { class: 'enlace', onclick: deshacer }, 'Deshacer') : null);
+  });
+  return [
+    h('div', { class: 'subtitulo' }, 'Niveles'),
+    h('div', { class: 'tarjeta' },
+      h('div', { class: 'ajuste' }, h('div', { class: 'crece' }, h('div', { class: 'negrita' }, 'Nivel que estás cursando'), h('div', { class: 'gris peq' }, 'Sus palabras nuevas salen antes que las de otros niveles')), sel),
+      filas,
+      h('p', { class: 'gris peq', style: { marginTop: '6px' } }, '"Ya lo conozco" pasa a repaso las palabras de un nivel anterior que no son complejas. Las complejas (traducción corregida, palabras que se confunden o con preposición fija) siguen como nuevas.')),
+  ];
+}
+
+function seccionCopiasAuto() {
+  const cont = h('div', { class: 'tarjeta' }, h('p', { class: 'gris peq' }, 'Cargando…'));
+  listarCopiasAuto().then((lista) => {
+    while (cont.firstChild) cont.removeChild(cont.firstChild);
+    cont.appendChild(h('p', { class: 'gris peq', style: { marginBottom: '6px' } }, 'Antes de cada actualización de la base de datos se guarda sola una copia completa (se conservan las 3 últimas). Si algo fuera mal tras una actualización, restáurala aquí.'));
+    if (!lista.length) { cont.appendChild(h('p', { class: 'gris peq' }, 'Todavía no hay ninguna.')); return; }
+    for (const c of lista) {
+      cont.appendChild(h('div', { class: 'ajuste' },
+        h('div', { class: 'crece' }, h('div', { class: 'negrita' }, new Date(c.fecha).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })),
+          h('div', { class: 'gris peq' }, `Antes de pasar de la versión ${c.desdeVersion} a la ${c.haciaVersion} · ${c.palabras} palabras · ${c.historial} respuestas`)),
+        h('button', { class: 'btn', style: { minHeight: '44px' }, onclick: async () => {
+          if (!(await confirmar('Restaurar copia automática', 'Se reemplazará TODO por esta copia. Lo que hayas hecho después se perderá.', { ok: 'Restaurar', peligro: true }))) return;
+          try { await restaurarCopiaAuto(c.id); olvidarSemana(); await asegurarSemana(contextoRetos); toast('Copia restaurada'); nav.refrescar(); } catch (e) { avisar('No se pudo restaurar', e.message); }
+        } }, 'Restaurar')));
+    }
+  });
+  return [h('div', { class: 'subtitulo' }, 'Copias automáticas'), cont];
+}
 
 function paso(titulo, ayuda, clave, { min, max, salto, formato = (v) => v, aValor = (v) => v, deValor = (v) => v }) {
   const valor = h('b', null, formato(mem.ajustes[clave]));
@@ -80,6 +142,7 @@ export function render(cont) {
   cont.append(
     h('h1', { class: 'titulo' }, 'Ajustes'),
 
+    ...seccionNiveles(),
     h('div', { class: 'subtitulo' }, 'Aprendizaje'),
     h('div', { class: 'tarjeta' },
       paso('Palabras nuevas por día', 'Cuántas palabras empiezas cada día', 'nuevasDia', { min: 0, max: 50, salto: 1 }),
@@ -118,6 +181,7 @@ export function render(cont) {
           } catch (e) { avisar('No se pudo restaurar', e.message); }
         }) }, '📥 Restaurar copia'))),
 
+    ...seccionCopiasAuto(),
     h('div', { class: 'subtitulo' }, 'Zona peligrosa'),
     h('div', { class: 'tarjeta' },
       h('button', { class: 'btn peligro ancho', onclick: async () => {

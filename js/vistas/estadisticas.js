@@ -2,7 +2,8 @@
 // Todo sale de los datos en memoria y de los agregados incrementales; no se recorre el historial.
 
 import { mem, diaDe } from '../db.js';
-import { DIA, fechaLocal, fechaRelativa, inicioDia, sumarDias, NOMBRE_DIR, resumenPalabra } from '../modelo.js';
+import { DIA, fechaLocal, fechaRelativa, inicioDia, sumarDias, NOMBRE_DIR, resumenPalabra, compararNiveles, nombreLeccion } from '../modelo.js';
+import { resumenNiveles } from '../niveles.js';
 import { prevision } from '../scheduler.js';
 import { MEDALLAS, nivelDe } from '../stats.js';
 import { resumenGlobal, retencionReal, rankingProblematicas, rankingMejores, confusionesFrecuentes, patronArticulos, sumaDias } from '../history.js';
@@ -12,7 +13,7 @@ import * as refuerzo from '../games/refuerzo.js';
 function tasas(titulo, objeto, { nombre = (k) => k, orden = 'peor', max = 8, min = 3 } = {}) {
   let filas = Object.entries(objeto || {}).filter(([, v]) => v.total >= min).map(([k, v]) => ({ k, tasa: v.ok / v.total, total: v.total }));
   if (!filas.length) return null;
-  if (orden === 'peor') filas.sort((a, b) => a.tasa - b.tasa); else if (orden === 'clave') filas.sort((a, b) => Number(a.k) - Number(b.k));
+  if (orden === 'peor') filas.sort((a, b) => a.tasa - b.tasa); else if (orden === 'clave') filas.sort((a, b) => compararNiveles(a.k.split('|')[0], b.k.split('|')[0]) || Number(a.k.split('|').pop()) - Number(b.k.split('|').pop()));
   const total = filas.length;
   filas = filas.slice(0, max);
   return h('div', { class: 'tarjeta' },
@@ -50,6 +51,17 @@ export function render(cont) {
   cont.appendChild(h('p', { class: 'gris peq', style: { margin: '8px 4px 0' } },
     `Retención real: ${ret.total ? `${ret.ok} de ${ret.total} repasos acertados` : 'aún sin repasos de palabras aprendidas'}. Objetivo: ${pct(mem.ajustes.retencion)}. Nivel ${nivelDe(g.xp).nivel} · ${g.xp} XP · racha máxima ${g.rachaMaxima} días.`));
 
+  // Progreso por nivel
+  const niveles = resumenNiveles();
+  if (niveles.length) {
+    cont.appendChild(h('div', { class: 'subtitulo' }, 'Por nivel'));
+    cont.appendChild(h('div', { class: 'tarjeta' }, niveles.map((n) => h('div', { class: 'tasa-fila' },
+      h('span', { class: 'corta' }, h('b', null, n.nivel || 'Sin nivel'), n.nivel === mem.ajustes.nivelActual ? ' ·  actual' : ''),
+      barra(n.total ? n.dominadas / n.total : 0, 'ok'),
+      h('span', { class: 'pct' }, pct(n.total ? n.dominadas / n.total : 0)))),
+    h('p', { class: 'gris peq', style: { marginTop: '4px' } }, 'Porcentaje de palabras dominadas de cada nivel.')));
+  }
+
   // Previsión
   const prev = prevision(mem.estados, ahora, 7);
   cont.appendChild(h('div', { class: 'subtitulo' }, 'Repasos previstos (7 días)'));
@@ -75,7 +87,8 @@ export function render(cont) {
   const bloques = [
     tasas('Acierto por dirección', ag.porDir, { nombre: (k) => NOMBRE_DIR[k] || k, min: 1 }),
     tasas('Acierto por tipo de palabra', ag.porTipo, { nombre: (k) => NOMBRE_TIPO[k] || k }),
-    tasas('Acierto por lección', ag.porLektion, { nombre: (k) => (k === 'sin' ? 'Sin lección' : 'Lektion ' + k), orden: 'clave', max: 20 }),
+    tasas('Acierto por nivel', ag.porNivel, { nombre: (k) => (k === 'sin' ? 'Sin nivel' : k), orden: 'clave', min: 1 }),
+    tasas('Acierto por lección', ag.porLektion, { nombre: (k) => (k.includes('|') ? nombreLeccion(k, new Set([...mem.palabras.values()].map((p) => p.nivel)).size > 1) : k === 'sin' ? 'Sin lección' : 'Lektion ' + k), orden: 'clave', max: 24 }),
     tasas('Acierto por tema', ag.porTema, { min: 5 }),
   ].filter(Boolean);
   if (bloques.length) { cont.appendChild(h('div', { class: 'subtitulo' }, 'Puntos débiles')); cont.append(...bloques); }

@@ -1,6 +1,6 @@
 // Service worker: "cache first" para todos los archivos de la app.
 // PARA PUBLICAR UNA ACTUALIZACIÓN: sube el número de versión de CACHE (v1 → v2 …).
-const CACHE = 'vokabeln-v1';
+const CACHE = 'vokabeln-v2';
 
 const ARCHIVOS = [
   './',
@@ -17,6 +17,8 @@ const ARCHIVOS = [
   'js/challenges.js',
   'js/stats.js',
   'js/import.js',
+  'js/niveles.js',
+  'js/relaciones.js',
   'js/games/sesion.js',
   'js/games/tarjetas.js',
   'js/games/test.js',
@@ -25,6 +27,7 @@ const ARCHIVOS = [
   'js/games/contrarreloj.js',
   'js/games/verbos.js',
   'js/games/refuerzo.js',
+  'js/games/relaciones.js',
   'js/vistas/inicio.js',
   'js/vistas/jugar.js',
   'js/vistas/biblioteca.js',
@@ -36,6 +39,7 @@ const ARCHIVOS = [
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png',
   'data/vokabeln.json',
+  'data/relaciones.json',
 ];
 
 self.addEventListener('install', (ev) => {

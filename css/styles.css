@@ -357,3 +357,29 @@ select.campo { -webkit-appearance: none; appearance: none; padding-right: 30px; 
   .pestanas { justify-content: center; }
   .pestana { max-width: 130px; }
 }
+
+/* ---------- Sinónimos y antónimos ---------- */
+.rejilla-rel { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+.columnas-rel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.columna-rel { display: flex; flex-direction: column; gap: 10px; }
+.ficha-rel {
+  min-height: 62px; padding: 8px 10px; border-radius: 16px; background: var(--tarjeta); border: 2px solid var(--borde);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center;
+  font-weight: 700; font-size: 16.5px; line-height: 1.15; overflow-wrap: anywhere; transition: transform .1s, background .15s, border-color .15s;
+}
+.ficha-rel:active { transform: scale(.96); }
+.ficha-rel .es { font-weight: 500; font-size: 12.5px; color: var(--texto-2); }
+.ficha-rel .es.oculta { display: none; }
+.ficha-rel.elegida { border-color: var(--primario); background: color-mix(in srgb, var(--primario) 14%, var(--tarjeta)); transform: scale(1.02); }
+.ficha-rel.hecha { pointer-events: none; border-color: transparent; }
+.g1 { background: #fff1d6 !important; } .g2 { background: #dbeafe !important; } .g3 { background: #fce7f3 !important; } .g4 { background: #dcfce7 !important; }
+@media (prefers-color-scheme: dark) {
+  .g1 { background: #4a3812 !important; } .g2 { background: #1b3352 !important; } .g3 { background: #4a1e36 !important; } .g4 { background: #173a26 !important; }
+}
+.grupos-hechos { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.grupo-hecho { border-radius: 16px; padding: 10px 12px; text-align: center; animation: pop .3s cubic-bezier(.2, 1.4, .4, 1) both; }
+.grupo-hecho .tit { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; opacity: .75; }
+.grupo-hecho .ws { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin-top: 3px; }
+.grupo-hecho .ws span { display: flex; flex-direction: column; }
+.grupo-hecho small { font-size: 11.5px; opacity: .7; }
+.chip.nivel { background: color-mix(in srgb, var(--der) 15%, transparent); color: var(--der); }

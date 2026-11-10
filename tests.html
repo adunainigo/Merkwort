@@ -25,6 +25,9 @@ import { generarRetos, aplicarEvento, PLANTILLAS } from './js/challenges.js';
 import { nivelDe, xpDeRespuesta, sumarDiaDeRacha, rachaVigente } from './js/stats.js';
 import * as DB from './js/db.js';
 import { registrarRespuesta, resumenGlobal, confusionesFrecuentes } from './js/history.js';
+import { aplicarRevision, leerRelaciones } from './js/import.js';
+import { estadosParaNivel, SIEMBRA } from './js/niveles.js';
+import { normalizarRelacion, clasesSinonimia, tableroSinonimos, tableroAntonimos } from './js/relaciones.js';
 
 const salida = document.getElementById('salida');
 let total = 0, fallidas = 0;
@@ -405,12 +408,189 @@ prueba('XP: más en modos difíciles y problemáticas; niveles crecientes; racha
   sumarDiaDeRacha(g, '2026-01-09'); igual(g.rachaActual, 1); igual(g.rachaMaxima, 2);
 });
 
+
+// =====================================================================
+seccion('Temas, niveles y palabras complejas');
+
+const TEMAS = ['Familia, relaciones y fiestas', 'Sentimientos y opiniones', 'Estudios y aprendizaje', 'Trabajo y profesiones', 'Ocio, cultura y deporte',
+  'Medios y comunicación', 'Casa, hogar y animales', 'Ciudad, transporte y viajes', 'Trámites y servicios', 'Palabras útiles', 'Verbos irregulares'];
+
+prueba('El vocabulario incluido usa solo 11 temas generales', async () => {
+  const datos = leerJSON(await (await fetch('data/vokabeln.json')).text());
+  const usados = new Set(datos.palabras.map((p) => p.tema));
+  igual([...usados].filter((t) => !TEMAS.includes(t)).join(), '', 'temas fuera de la lista');
+  igual(usados.size, 11); igual(datos.revision, 2);
+});
+prueba('Palabras complejas: todas las de traducción corregida y las de preposición fija', async () => {
+  const p = fusionar(new Map(), leerJSON(await (await fetch('data/vokabeln.json')).text())).guardar;
+  const complejas = p.filter((x) => x.compleja);
+  ok(complejas.length > 40 && complejas.length < 100, 'complejas: ' + complejas.length);
+  igual(p.filter((x) => x.revisar && !x.compleja).length, 0, 'revisar ⇒ compleja');
+  ok(p.find((x) => x.de === 'sich interessieren').compleja && p.find((x) => x.de === 'abgeben').compleja && !p.find((x) => x.de === 'Hochzeit').compleja);
+});
+prueba('Pasar un nivel a repaso: salta complejas y progreso existente, sin dar nada por dominado', () => {
+  const pal = (de, extra) => palabra(de, { nivel: 'A2.2', ...extra });
+  const palabras = mapa([pal('Tisch', { articulo: 'der', tipo: 'sustantivo' }), pal('fahren', { tipo: 'verbo', notas: 'er fährt, ist gefahren' }), pal('schwierig', { compleja: true }), pal('schon', {}), palabra('neu', { nivel: 'B1.1' })]);
+  const ids = [...palabras.keys()];
+  const previo = enRepaso(ids[3], 'de-es', { s: 40, hace: 3, vence: 37 });
+  const estados = new Map([[previo.clave, previo]]);
+  const r = estadosParaNivel({ palabras, estados, nivel: 'A2.2', ahora: T0, rand: M.crearRand(5) });
+  igual(r.complejas, 1); igual(r.palabras, 3, 'Tisch, fahren y schon (es→de)');
+  igual(r.estados.map((e) => e.clave).sort().join(), [ids[0] + '#articulo', ids[0] + '#de-es', ids[0] + '#es-de', ids[1] + '#de-es', ids[1] + '#es-de', ids[1] + '#formas', ids[3] + '#es-de'].sort().join());
+  for (const e of r.estados) {
+    igual(e.fase, 'repaso'); ok(e.estabilidad < M.UMBRAL_DOMINADA, 'no se da por dominada'); ok(e.proximaRevision > T0, 'vence en el futuro');
+    ok((e.proximaRevision - M.inicioDia(T0)) / M.DIA <= SIEMBRA[e.dir].dias + 1); igual(e.origen, 'nivel'); igual(e.repeticiones, 0);
+  }
+  ok(!r.estados.some((e) => e.palabraId === ids[4]), 'no toca otros niveles');
+  for (const e of r.estados) estados.set(e.clave, e);
+  ok(!M.resumenPalabra(palabras.get(ids[0]), estados).dominada);
+  igual(M.resumenPalabra(palabras.get(ids[0]), estados).fase, 'repaso');
+  const plan = armarSesion({ palabras, estados, ahora: T0 + 3600000, ajustes: { nuevasDia: 10 } });
+  igual(plan.nuevas, 2, 'la siembra no gasta el cupo de nuevas de hoy (schwierig y neu)');
+});
+prueba('Las palabras nuevas del nivel que estás cursando salen primero', () => {
+  const palabras = mapa([...Array.from({ length: 8 }, (_, i) => palabra('a' + i, { nivel: 'A2.2', lektion: 1 })), ...Array.from({ length: 8 }, (_, i) => palabra('b' + i, { nivel: 'B1.1', lektion: 5 }))]);
+  const plan = armarSesion({ palabras, estados: new Map(), ahora: T0, ajustes: { nuevasDia: 10, nivelActual: 'B1.1', tamSesion: 50 } });
+  igual(plan.items.filter((x) => palabras.get(x.palabraId).nivel === 'B1.1').length, 8); igual(plan.items.length, 10);
+});
+prueba('Filtros por nivel y por lección de un nivel concreto', () => {
+  const palabras = mapa([palabra('a', { nivel: 'A2.2', lektion: 3 }), palabra('b', { nivel: 'B1.1', lektion: 3 }), palabra('c', { nivel: 'B1.1', lektion: 4 })]);
+  const des = (f) => armarSesion({ palabras, estados: new Map(), ahora: T0, ajustes: { nuevasDia: 10 }, filtros: f }).items.map((x) => palabras.get(x.palabraId).de).sort().join();
+  igual(des({ nivel: 'B1.1' }), 'b,c'); igual(des({ lektion: 'A2.2|3' }), 'a'); igual(des({ lektion: '3' }), 'a,b');
+  igual(M.nombreLeccion('B1.1|4'), 'B1.1 · Lektion 4'); ok(M.compararNiveles('A2.2', 'B1.1') < 0 && M.compararNiveles('B1.2', 'B1.10') < 0);
+});
+prueba('Importar una palabra de B1 que ya tenías de A2 conserva su nivel y lección', () => {
+  const previa = fusionar(new Map(), leerJSON(jsonDe([{ ...FLOH, nivel: 'A2.2', lektion: 1 }]))).guardar;
+  const r = fusionar(mapa(previa), leerJSON(JSON.stringify({ version: 1, nivel: 'B1.1', palabras: [{ ...FLOH, lektion: 7, es: 'rastro' }] })));
+  const p = r.guardar[0];
+  igual(p.nivel, 'A2.2'); igual(p.lektion, 1); igual(p.es, 'rastro', 'el texto sí se actualiza');
+  const comp = fusionar(mapa([{ ...previa[0], compleja: true }]), leerJSON(jsonDe([{ ...FLOH, es: 'x' }]))).guardar[0];
+  igual(comp.compleja, true, 'sin el campo "compleja" se conserva la marca');
+});
+prueba('Revisión del vocabulario incluido: cambia tema y compleja, respeta ediciones y borrados', () => {
+  const base = fusionar(new Map(), leerJSON(jsonDe([FLOH, { de: 'gehen', es: 'ir', tipo: 'verbo', tema: 'Viejo' }, { de: 'neu', es: 'nuevo', tipo: 'adjetivo', tema: 'Viejo' }]))).guardar;
+  const ex = mapa(base);
+  ex.set('gehen|-|verbo', { ...ex.get('gehen|-|verbo'), editada: 1, es: 'andar' });
+  ex.delete('neu|-|adjetivo');
+  const cambios = aplicarRevision(ex, leerJSON(jsonDe([{ ...FLOH, tema: 'Ocio, cultura y deporte', es: 'otro texto', compleja: true }, { de: 'gehen', es: 'ir', tipo: 'verbo', tema: 'Palabras útiles' }, { de: 'neu', es: 'nuevo', tipo: 'adjetivo', tema: 'Palabras útiles' }])));
+  igual(cambios.length, 1);
+  igual(cambios[0].tema, 'Ocio, cultura y deporte'); igual(cambios[0].compleja, true); igual(cambios[0].es, 'mercadillo', 'no cambia otros campos');
+});
+
+// =====================================================================
+seccion('Sinónimos y antónimos');
+
+let relacionesIncluidas = null;
+const cargarRelaciones = async () => (relacionesIncluidas ||= leerRelaciones(JSON.parse(await (await fetch('data/relaciones.json')).text()), 'app'));
+
+prueba('Los sinónimos y antónimos incluidos son válidos y no se solapan', async () => {
+  const { lista, errores } = await cargarRelaciones();
+  igual(errores.join(' | '), '');
+  const sin = lista.filter((r) => r.tipo === 'sinonimos'), ant = lista.filter((r) => r.tipo === 'antonimos');
+  ok(sin.length >= 50 && ant.length >= 60, `${sin.length} grupos, ${ant.length} parejas`);
+  const vistas = new Map();
+  for (const r of sin) for (const w of r.palabras) { ok(!vistas.has(w.de), `«${w.de}» está en dos grupos de sinónimos`); vistas.set(w.de, r.id); }
+  ok(ant.every((r) => r.palabras.length === 2 && r.palabras.every((w) => w.es)), 'antónimos en parejas y con traducción');
+  igual(new Set(lista.map((r) => r.id)).size, lista.length, 'ids únicos');
+});
+prueba('Validación de relaciones importadas con mensajes claros', () => {
+  const lanza = (r, re) => { try { normalizarRelacion(r, 0); } catch (e) { ok(re.test(e.message), e.message); return; } throw new Error('no lanzó error'); };
+  lanza({ tipo: 'parecidos', palabras: ['a', 'b'] }, /sinonimos" o "antonimos/);
+  lanza({ tipo: 'antonimos', palabras: ['a', 'b', 'c'] }, /exactamente dos/);
+  lanza({ tipo: 'sinonimos', palabras: ['a', 'A'] }, /al menos dos/);
+  const r = normalizarRelacion({ tipo: 'sinónimos', palabras: ['beginnen', { de: 'anfangen', es: 'empezar' }] }, 0);
+  igual(r.tipo, 'sinonimos'); igual(r.id, 'sinonimos:anfangen|beginnen'); igual(r.palabras[0].es, null);
+});
+prueba('Tablero de sinónimos: grupos con significados distintos y sin palabras repetidas', async () => {
+  const { lista } = await cargarRelaciones();
+  const clase = clasesSinonimia(lista);
+  for (let semilla = 1; semilla <= 150; semilla++) {
+    const t = tableroSinonimos(lista, { grupos: 4, rand: M.crearRand(semilla) });
+    igual(t.length, 4);
+    const ws = t.flatMap((g) => g.miembros.map((w) => w.de));
+    igual(new Set(ws).size, ws.length, 'palabra repetida');
+    ok(t.every((g) => g.miembros.length >= 2 && g.miembros.length <= 3));
+    igual(new Set(t.map((g) => clase(g.miembros[0].de))).size, 4, 'dos grupos con el mismo significado');
+  }
+});
+prueba('Tablero de antónimos: cada palabra tiene un único contrario posible', async () => {
+  const { lista } = await cargarRelaciones();
+  const clase = clasesSinonimia(lista);
+  for (let semilla = 1; semilla <= 150; semilla++) {
+    const t = tableroAntonimos(lista, { parejas: 5, rand: M.crearRand(semilla) });
+    igual(t.length, 5);
+    const clases = t.flatMap((p) => [clase(p.a.de), clase(p.b.de)]);
+    igual(new Set(clases).size, 10, 'hay sinónimos en el mismo tablero: ' + t.map((p) => p.a.de + '/' + p.b.de).join(', '));
+  }
+  // leicht/einfach son sinónimos: leicht–schwer y einfach–kompliziert nunca salen juntas.
+  for (let semilla = 1; semilla <= 300; semilla++) {
+    const ws = tableroAntonimos(lista, { parejas: 8, rand: M.crearRand(semilla) }).flatMap((p) => [p.a.de, p.b.de]);
+    ok(!(ws.includes('leicht') && ws.includes('einfach')), 'leicht y einfach en el mismo tablero');
+  }
+});
+prueba('Los filtros dejan fuera las relaciones sin palabras que los cumplan (peso 0)', async () => {
+  const { lista } = await cargarRelaciones();
+  const permitidas = new Set(lista.filter((r) => r.tipo === 'antonimos').slice(0, 6).map((r) => r.id));
+  for (let semilla = 1; semilla <= 30; semilla++) {
+    const t = tableroAntonimos(lista, { parejas: 5, peso: (r) => (permitidas.has(r.id) ? 1 : 0), rand: M.crearRand(semilla) });
+    ok(t.every((p) => permitidas.has(p.rel.id)));
+  }
+});
+
+// =====================================================================
+seccion('Base de datos · migración con copia automática');
+
+prueba('Abrir una base de la versión 1 la migra a la 2 sin perder nada y guarda una copia antes', async () => {
+  const NOMBRE = 'vokabeln-migracion';
+  await DB.eliminarBase(NOMBRE);
+  // Base v1 tal como la creaba la primera versión de la app, con datos.
+  await new Promise((ok2, err) => {
+    const req = indexedDB.open(NOMBRE, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      db.createObjectStore('palabras', { keyPath: 'id' });
+      const est = db.createObjectStore('estado', { keyPath: 'clave' }); est.createIndex('palabraId', 'palabraId');
+      const his = db.createObjectStore('historial', { keyPath: 'n', autoIncrement: true }); his.createIndex('palabraId', 'palabraId'); his.createIndex('fecha', 'fecha');
+      db.createObjectStore('estadisticas', { keyPath: 'clave' }); db.createObjectStore('retos', { keyPath: 'semana' }); db.createObjectStore('ajustes', { keyPath: 'clave' });
+    };
+    req.onsuccess = () => {
+      const db = req.result;
+      const tx = db.transaction(['palabras', 'estado', 'historial', 'ajustes'], 'readwrite');
+      tx.objectStore('palabras').put({ id: 'flohmarkt|der|sustantivo', de: 'Flohmarkt', articulo: 'der', es: 'mercadillo', tipo: 'sustantivo', nivel: 'A2.2' });
+      tx.objectStore('estado').put({ ...enRepaso('flohmarkt|der|sustantivo', 'de-es'), repeticiones: 7 });
+      for (let i = 0; i < 5; i++) tx.objectStore('historial').add({ palabraId: 'flohmarkt|der|sustantivo', dir: 'de-es', fecha: T0 + i, resultado: 'acierto' });
+      tx.objectStore('ajustes').put({ clave: 'ajustes', nuevasDia: 7, datosCargados: true });
+      tx.oncomplete = () => { db.close(); ok2(); };
+      tx.onerror = () => err(tx.error);
+    };
+    req.onerror = () => err(req.error);
+  });
+  const db = await DB.abrir(NOMBRE);
+  igual(db.version, 2);
+  ok(db.objectStoreNames.contains('relaciones') && db.objectStoreNames.contains('backups'));
+  await DB.cargar();
+  igual(DB.mem.palabras.size, 1); igual(DB.estadoDe('flohmarkt|der|sustantivo', 'de-es').repeticiones, 7); igual(await DB.contarHistorial(), 5); igual(DB.mem.ajustes.nuevasDia, 7);
+  const copias = await DB.listarCopiasAuto();
+  igual(copias.length, 1); igual(copias[0].desdeVersion, 1); igual(copias[0].haciaVersion, 2); igual(copias[0].palabras, 1); igual(copias[0].historial, 5);
+  // "Borrar todo" no toca las copias automáticas, y se puede volver a la copia.
+  await DB.borrarTodo();
+  igual(DB.mem.palabras.size, 0); igual((await DB.listarCopiasAuto()).length, 1);
+  await DB.restaurarCopiaAuto(copias[0].id);
+  igual(DB.mem.palabras.size, 1); igual(await DB.contarHistorial(), 5); igual(DB.estadoDe('flohmarkt|der|sustantivo', 'de-es').repeticiones, 7);
+  DB.cerrar(); await DB.eliminarBase(NOMBRE);
+});
+prueba('sw.js solo borra cachés y nunca toca IndexedDB', async () => {
+  const sw = await (await fetch('sw.js', { cache: 'no-store' })).text();
+  ok(!/indexedDB|IDB/.test(sw), 'sw.js menciona IndexedDB');
+  ok(/caches\.delete/.test(sw));
+});
+
 // =====================================================================
 seccion('Simulación · usuario que estudia 60 días con un 85 % de acierto');
 
-function simular({ palabras, dias = 60, acierto = 0.85, ajustes = { nuevasDia: 10, maxRepasosDia: 100, tamSesion: 40 }, semilla = 42, saltar = [] }) {
+function simular({ palabras, dias = 60, acierto = 0.85, ajustes = { nuevasDia: 10, maxRepasosDia: 100, tamSesion: 40 }, semilla = 42, saltar = [], iniciales = null }) {
   const rand = M.crearRand(semilla);
-  const estados = new Map();
+  const estados = new Map(iniciales || []);
   const diario = [];
   const inicio = new Date(2026, 0, 5, 9, 0, 0).getTime();
   for (let d = 0; d < dias; d++) {
@@ -471,6 +651,23 @@ prueba('60 días al 85 %: la carga diaria de repasos es razonable', async () => 
   ok(maximo < 300, 'pico demasiado alto: ' + maximo);
   ok(diario.every((x) => x.repasos <= 100), 'se respeta el máximo de repasos al día');
   ok(dominadas > 20, 'pocas dominadas: ' + dominadas);
+});
+
+prueba('A2 dado por conocido + 10 palabras B1 nuevas al día: la carga sigue siendo razonable', async () => {
+  const a2 = await cargarVocabulario();
+  const b1 = Array.from({ length: 400 }, (_, i) => palabra('b1wort' + i, { nivel: 'B1.1', lektion: 1 + Math.floor(i / 40), tipo: i % 3 ? 'otro' : 'sustantivo', articulo: i % 3 ? null : 'die' }));
+  const palabras = new Map([...a2, ...b1.map((p) => [p.id, p])]);
+  const inicio = new Date(2026, 0, 5, 9, 0, 0).getTime();
+  const siembra = estadosParaNivel({ palabras, estados: new Map(), nivel: 'A2.2', ahora: inicio - M.DIA, rand: M.crearRand(9) });
+  const { diario } = simular({ palabras, iniciales: siembra.estados.map((e) => [e.clave, e]), ajustes: { nuevasDia: 10, maxRepasosDia: 100, tamSesion: 40, nivelActual: 'B1.1' } });
+  const media = diario.reduce((s, x) => s + x.respuestas, 0) / diario.length, maximo = Math.max(...diario.map((x) => x.respuestas));
+  el('pre', '', `A2 sembrado: ${siembra.estados.length} direcciones de ${siembra.palabras} palabras (${siembra.complejas} complejas siguen como nuevas)\n` +
+    `respuestas/día: media ${media.toFixed(0)} · máximo ${maximo} · nuevas B1 por día: ${diario.slice(0, 5).map((x) => x.nuevas).join(', ')}…\n` +
+    `repasos/día: ${diario.filter((_, i) => i % 3 === 0).map((x) => x.repasos).join(', ')} · días sin nuevas: ${diario.filter((x) => x.nuevas === 0).length}`);
+  ok(diario.every((x) => x.repasos <= 100), 'se respeta el máximo de repasos al día');
+  ok(media < 260, 'media demasiado alta: ' + media.toFixed(0)); ok(maximo < 330, 'pico demasiado alto: ' + maximo);
+  ok(diario.filter((x) => x.nuevas === 10).length >= 0.75 * diario.length, 'las palabras nuevas se frenan demasiados días');
+  ok(diario.slice(0, 30).every((x) => x.nuevas === 10), 'el primer mes entran 10 nuevas cada día');
 });
 prueba('Tras 5 días sin estudiar, los atrasos se reparten en vez de caer de golpe', async () => {
   const palabras = await cargarVocabulario();

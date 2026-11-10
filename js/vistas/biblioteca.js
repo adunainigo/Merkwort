@@ -11,6 +11,12 @@ const TANDA = 60;
 
 const NOMBRE_FASE = { nueva: 'Nueva', aprendiendo: 'Aprendiendo', repaso: 'En repaso', dominada: 'Dominada' };
 
+let cacheNiveles = { v: -1, varios: false };
+const variosNiveles = () => {
+  if (cacheNiveles.v !== mem.version) cacheNiveles = { v: mem.version, varios: new Set([...mem.palabras.values()].map((p) => p.nivel)).size > 1 };
+  return cacheNiveles.varios;
+};
+
 const plano = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function filtrar() {
@@ -18,7 +24,8 @@ function filtrar() {
   const out = [];
   for (const p of mem.palabras.values()) {
     if (!pasaFiltros(p, filtros)) continue;
-    if (filtros.revisar && !p.revisar) continue;
+    if (filtros.revisar === '1' && !p.revisar) continue;
+    if (filtros.revisar === 'compleja' && !p.compleja) continue;
     if (q && !plano(p.de).includes(q) && !plano(p.es).includes(q)) continue;
     const r = resumenPalabra(p, mem.estados);
     if (filtros.estado === 'problematica' ? !r.problematica : filtros.estado && r.fase !== filtros.estado) continue;
@@ -34,6 +41,8 @@ export function filaPalabra(p, r, extra = null) {
       h('div', { class: 'de corta' }, p.articulo ? h('span', { class: 'art-' + p.articulo }, p.articulo + ' ') : null, p.de, p.revisar ? ' ✏️' : ''),
       h('div', { class: 'es corta' }, p.es)),
     extra,
+    p.compleja ? h('span', { title: 'Compleja' }, '🧠') : null,
+    variosNiveles() && p.nivel ? h('span', { class: 'chip nivel' }, p.nivel) : null,
     r && r.problematica ? h('span', { title: 'Problemática' }, '⚠️') : null,
     r ? h('span', { class: 'chip ' + r.fase }, NOMBRE_FASE[r.fase]) : null);
 }
@@ -76,8 +85,8 @@ export function render(cont) {
     buscador,
     h('div', { class: 'filtros', style: { marginTop: '10px' } },
       selector('Estado', [['nueva', 'Nuevas'], ['aprendiendo', 'Aprendiendo'], ['repaso', 'En repaso'], ['dominada', 'Dominadas'], ['problematica', 'Problemáticas']], filtros.estado, set('estado')),
-      filtrosComunes(filtros, actualizar),
-      selector('Revisión', [['1', 'Por revisar ✏️']], filtros.revisar, set('revisar'))),
+      filtrosComunes(filtros, () => nav.refrescar()),
+      selector('Marcas', [['1', 'Por revisar ✏️'], ['compleja', 'Complejas 🧠']], filtros.revisar, set('revisar'))),
     contador, lista);
   actualizar();
 }

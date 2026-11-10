@@ -4,7 +4,8 @@ App para aprender vocabulario de alemán en el iPhone, sin App Store. Es una PWA
 
 - Interfaz en español, contenido en alemán.
 - Incluye `data/vokabeln.json` (1247 palabras, nivel A2.2, lecciones 1–12 y verbos irregulares), que se carga solo la primera vez.
-- Repetición espaciada con FSRS-5, historial completo de respuestas, siete modos de juego, estadísticas, XP, racha y retos semanales.
+- Repetición espaciada con FSRS-5, historial completo de respuestas, nueve modos de juego (incluidos sinónimos y antónimos), estadísticas, XP, racha y retos semanales.
+- Vocabulario clasificado por nivel (A2.2, B1.1…) y en 11 temas generales.
 
 ## 1. Subir la app a GitHub Pages
 
@@ -80,6 +81,47 @@ En **Ajustes → Importar vocabulario** puedes importar desde un archivo, pegand
 | `lektion` | no | número o `null` |
 | `etiquetas` | no | lista de textos, p. ej. `["verbo irregular"]` |
 | `revisar` | no | `true` si conviene revisar la traducción |
+| `compleja` | no | `true` si la palabra es difícil aunque sea de un nivel que ya conoces (no pasa a repaso con "Ya lo conozco") |
+
+**Nivel.** Pon el nivel de cada archivo en `"nivel"` (arriba del todo o en cada palabra), con el formato `A2.2`, `B1.1`, `B1.2`… Las lecciones se distinguen por nivel: la Lektion 3 de B1.1 no se mezcla con la Lektion 3 de A2.2.
+
+**Temas.** Para que no vuelvan a multiplicarse, usa siempre uno de estos 11:
+
+| Tema | Qué incluye |
+|---|---|
+| Familia, relaciones y fiestas | familia, etapas de la vida, vecinos, celebraciones, ayudar a otros |
+| Sentimientos y opiniones | emociones, dar la opinión, consejos, propuestas |
+| Estudios y aprendizaje | colegio, universidad, exámenes, aprender, presentaciones |
+| Trabajo y profesiones | profesiones, buscar trabajo, el día a día en el trabajo |
+| Ocio, cultura y deporte | tiempo libre, deporte, cine, música, arte, excursiones |
+| Medios y comunicación | aparatos, internet, noticias, teléfono |
+| Casa, hogar y animales | vivienda, mudanzas, medidas, energía en casa, animales |
+| Ciudad, transporte y viajes | ciudad, coche, tren, avión, tráfico, viajes, restaurantes y hoteles |
+| Trámites y servicios | administración, banco, policía, atención al cliente |
+| Palabras útiles | palabras y expresiones generales, conectores, comparaciones |
+| Verbos irregulares | la lista de verbos irregulares |
+
+**Sinónimos y antónimos (opcional).** Puedes añadir una lista `relaciones` al mismo archivo (o en un archivo que solo tenga `relaciones`):
+
+```json
+{
+  "version": 1,
+  "nivel": "B1.1",
+  "palabras": [ … ],
+  "relaciones": [
+    { "tipo": "sinonimos", "significado": "empezar", "palabras": [ { "de": "anfangen", "es": "empezar" }, { "de": "beginnen", "es": "comenzar" } ] },
+    { "tipo": "antonimos", "palabras": [ { "de": "billig", "es": "barato" }, { "de": "teuer", "es": "caro" } ] }
+  ]
+}
+```
+
+- `sinonimos`: dos o más palabras que significan lo mismo. Cada palabra solo debería estar en un grupo de sinónimos.
+- `antonimos`: exactamente dos palabras contrarias.
+- `es` es opcional si la palabra ya está en tu vocabulario. Las palabras que no estén en él también valen como fichas del juego, pero no tienen repaso propio.
+
+**Instrucción para la IA que genera los archivos.** Puedes copiarle esto:
+
+> Usa el formato JSON de Vokabeln. Pon `"nivel": "B1.1"` (o el que corresponda). En `tema` usa solo uno de estos: Familia, relaciones y fiestas · Sentimientos y opiniones · Estudios y aprendizaje · Trabajo y profesiones · Ocio, cultura y deporte · Medios y comunicación · Casa, hogar y animales · Ciudad, transporte y viajes · Trámites y servicios · Palabras útiles · Verbos irregulares. Marca `"compleja": true` en las palabras con régimen preposicional o de caso, en las que se confunden fácilmente con otras y en las que tengan una traducción corregida. Añade una lista `relaciones` con los grupos de sinónimos y las parejas de antónimos que aparezcan en la lección, completándolos con palabras básicas si hace falta.
 
 Reglas:
 
@@ -109,6 +151,8 @@ Las **copias de seguridad** (Ajustes → Exportar copia) son otro archivo distin
 
 El test de cuatro opciones y Der · Die · Das nunca dan "Fácil", porque acertar ahí es más sencillo. En Contrarreloj el tiempo no cuenta. En Tarjetas te evalúas tú con los cuatro botones.
 
+**Niveles.** En Ajustes → Niveles eliges el nivel que estás cursando (por defecto B1.1); sus palabras nuevas salen antes que las de otros niveles. Para un nivel anterior que ya conoces, "Ya lo conozco" pasa sus palabras a repaso en vez de presentarlas como nuevas. Esos repasos se reparten en los próximos meses, unos 17 al día, y sirven para comprobar que de verdad las sabes. Una palabra pasada así no cuenta como dominada hasta que la aciertas. Se exceptúan las palabras marcadas como **complejas** 🧠, que siguen como nuevas: las de traducción corregida, las que se confunden con otra y las que llevan preposición fija (*sich interessieren für*, *stolz auf*…). Puedes marcar o desmarcar cualquier palabra como compleja desde su ficha, y "Deshacer" devuelve a nuevas las que todavía no hayas respondido.
+
 **Una palabra nueva o fallada se repite en la misma sesión**, al cabo de 1 y 10 minutos aproximadamente, hasta que la aciertas. Solo entonces pasa a intervalos de días. Si fallas la misma tres veces seguidas, sale de la sesión y vuelve mañana.
 
 **El "Repaso de hoy" se arma así:**
@@ -125,9 +169,11 @@ Las preguntas se mezclan y se evita que salgan seguidas dos palabras del mismo t
 
 **Problemática**: una palabra con 4 olvidos o más después de haberla aprendido, o con menos del 60 % de acierto en sus últimas 10 respuestas (con un mínimo de 5). Se marca con ⚠️, da más XP, muestra más ayuda cuando la fallas (ejemplo, notas y artículo en su color) y tiene su propia sesión de Refuerzo. Deja de serlo cuando su acierto reciente se recupera y encadenas 5 aciertos seguidos.
 
+**Sinónimos y antónimos.** En "Agrupa sinónimos" aparecen 3 o 4 grupos mezclados y juntas los que significan lo mismo. En "Une antónimos" emparejas cada palabra con su contrario. Los tableros nunca mezclan sinónimos que se presten a confusión: por ejemplo, *leicht/schwer* y *einfach/kompliziert* no salen a la vez, porque *leicht* y *einfach* son sinónimos. Salen antes las relaciones que incluyen palabras tuyas ya empezadas y flojas. Cada palabra de tu vocabulario que ya hayas empezado registra un acierto o un fallo en reconocimiento (alemán → español). Si usas la pista de traducción, el acierto cuenta como "Difícil".
+
 **Confusiones**: si al escribir pones otra palabra de tu vocabulario, o en el test eliges una opción equivocada, la app guarda la pareja. Esas palabras aparecerán como opciones falsas la una de la otra, y las parejas que confundes dos veces o más salen juntas en el modo Refuerzo. También detecta si fallas sobre todo una pareja de artículos (por ejemplo *die* y *das*) y te pone más sustantivos de esos géneros.
 
-Con los ajustes por defecto, la simulación de `tests.html` (60 días seguidos con un 85 % de acierto) da unas 110 respuestas al día de media, unos 20 minutos, con 600 palabras empezadas.
+Con los ajustes por defecto, la simulación de `tests.html` (60 días seguidos con un 85 % de acierto) da unas 115 respuestas al día de media, unos 17 minutos, con 600 palabras empezadas. Si además das A2 por conocido, sube a unas 140 al día, unos 21 minutos. Hacia el segundo mes se llega a los 100 repasos diarios y algunos días no entran palabras nuevas. Si se te hace mucho, baja las palabras nuevas por día o sube los repasos máximos.
 
 ## 6. Desarrollo y pruebas
 
@@ -152,9 +198,13 @@ Estructura:
 | `js/scheduler.js` | arma las sesiones |
 | `js/history.js` | registro de respuestas, agregados y palabras problemáticas |
 | `js/stats.js`, `js/challenges.js` | XP, niveles, racha, medallas y retos semanales |
-| `js/import.js` | importación y copias de seguridad |
+| `js/import.js` | importación, revisiones del vocabulario incluido y copias de seguridad |
+| `js/niveles.js` | niveles: "Ya lo conozco" y su deshacer |
+| `js/relaciones.js` | sinónimos y antónimos: validación y tableros sin ambigüedades |
 | `js/games/` | un archivo por modo de juego, más `sesion.js`, que los ejecuta |
 | `js/vistas/` | las pantallas |
 | `tools/generar-iconos.mjs` | regenera los iconos PNG (solo para desarrollo) |
 
-Para cambiar el esquema de la base de datos, añade una función a `MIGRACIONES` en `js/db.js` y sube `VERSION_BD`.
+Para cambiar el esquema de la base de datos, añade una función a `MIGRACIONES` en `js/db.js` y sube `VERSION_BD`. Antes de migrar, la app guarda sola una copia completa en el almacén `backups` (conserva las 3 últimas), que se puede restaurar en Ajustes → Copias automáticas. Las reglas completas están en `CLAUDE.md`.
+
+El vocabulario incluido lleva un número `revision`. Si lo cambias, por ejemplo para reorganizar temas, súbelo: al actualizar, la app aplicará los campos `tema` y `compleja` a las palabras ya instaladas sin tocar el progreso. Las palabras que hayas editado a mano no se tocan. Lo mismo vale para `data/relaciones.json`.
