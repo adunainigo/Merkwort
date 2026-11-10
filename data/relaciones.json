@@ -1,0 +1,2046 @@
+{
+ "version": 1,
+ "revision": 1,
+ "relaciones": [
+  {
+   "tipo": "sinonimos",
+   "significado": "empezar",
+   "palabras": [
+    {
+     "de": "anfangen",
+     "es": "empezar"
+    },
+    {
+     "de": "beginnen",
+     "es": "comenzar"
+    },
+    {
+     "de": "starten",
+     "es": "arrancar, empezar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "terminar",
+   "palabras": [
+    {
+     "de": "beenden",
+     "es": "terminar"
+    },
+    {
+     "de": "abschließen",
+     "es": "terminar (estudios)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "recibir",
+   "palabras": [
+    {
+     "de": "bekommen",
+     "es": "recibir"
+    },
+    {
+     "de": "erhalten",
+     "es": "recibir (formal)"
+    },
+    {
+     "de": "kriegen",
+     "es": "recibir (coloq.)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "entender",
+   "palabras": [
+    {
+     "de": "verstehen",
+     "es": "entender"
+    },
+    {
+     "de": "kapieren",
+     "es": "pillar (coloq.)"
+    },
+    {
+     "de": "begreifen",
+     "es": "comprender"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "inteligente",
+   "palabras": [
+    {
+     "de": "klug",
+     "es": "listo"
+    },
+    {
+     "de": "intelligent",
+     "es": "inteligente"
+    },
+    {
+     "de": "schlau",
+     "es": "listo, astuto"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "emocionante",
+   "palabras": [
+    {
+     "de": "spannend",
+     "es": "emocionante"
+    },
+    {
+     "de": "aufregend",
+     "es": "emocionante, excitante"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "estupendo",
+   "palabras": [
+    {
+     "de": "prima",
+     "es": "estupendo"
+    },
+    {
+     "de": "großartig",
+     "es": "magnífico"
+    },
+    {
+     "de": "genial",
+     "es": "genial"
+    },
+    {
+     "de": "toll",
+     "es": "genial"
+    },
+    {
+     "de": "fantastisch",
+     "es": "fantástico"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "tonto",
+   "palabras": [
+    {
+     "de": "blöd",
+     "es": "tonto"
+    },
+    {
+     "de": "dumm",
+     "es": "tonto"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "triste",
+   "palabras": [
+    {
+     "de": "traurig",
+     "es": "triste"
+    },
+    {
+     "de": "unglücklich",
+     "es": "infeliz"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "enfadado",
+   "palabras": [
+    {
+     "de": "wütend",
+     "es": "furioso"
+    },
+    {
+     "de": "sauer",
+     "es": "enfadado (coloq.)"
+    },
+    {
+     "de": "ärgerlich",
+     "es": "enfadado"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "útil",
+   "palabras": [
+    {
+     "de": "nützlich",
+     "es": "útil"
+    },
+    {
+     "de": "sinnvoll",
+     "es": "sensato, útil"
+    },
+    {
+     "de": "hilfreich",
+     "es": "de ayuda"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "necesario",
+   "palabras": [
+    {
+     "de": "notwendig",
+     "es": "necesario"
+    },
+    {
+     "de": "nötig",
+     "es": "necesario"
+    },
+    {
+     "de": "erforderlich",
+     "es": "necesario (formal)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "difícil",
+   "palabras": [
+    {
+     "de": "schwierig",
+     "es": "difícil"
+    },
+    {
+     "de": "kompliziert",
+     "es": "complicado"
+    },
+    {
+     "de": "schwer",
+     "es": "difícil"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "fácil",
+   "palabras": [
+    {
+     "de": "leicht",
+     "es": "fácil"
+    },
+    {
+     "de": "einfach",
+     "es": "sencillo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "gratis",
+   "palabras": [
+    {
+     "de": "kostenlos",
+     "es": "gratis"
+    },
+    {
+     "de": "gratis",
+     "es": "gratis"
+    },
+    {
+     "de": "umsonst",
+     "es": "gratis"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "barato",
+   "palabras": [
+    {
+     "de": "preiswert",
+     "es": "a buen precio"
+    },
+    {
+     "de": "billig",
+     "es": "barato"
+    },
+    {
+     "de": "günstig",
+     "es": "económico"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "aprendiz",
+   "palabras": [
+    {
+     "de": "Auszubildende",
+     "es": "aprendiz"
+    },
+    {
+     "de": "Azubi",
+     "es": "aprendiz (coloq.)"
+    },
+    {
+     "de": "Lehrling",
+     "es": "aprendiz"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "formación profesional",
+   "palabras": [
+    {
+     "de": "Ausbildung",
+     "es": "formación profesional"
+    },
+    {
+     "de": "Lehre",
+     "es": "aprendizaje (oficio)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "autónomo",
+   "palabras": [
+    {
+     "de": "freiberuflich",
+     "es": "autónomo"
+    },
+    {
+     "de": "selbstständig",
+     "es": "por cuenta propia"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "camión",
+   "palabras": [
+    {
+     "de": "Lkw",
+     "es": "camión"
+    },
+    {
+     "de": "Lastwagen",
+     "es": "camión"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "vehículo",
+   "palabras": [
+    {
+     "de": "Kfz",
+     "es": "vehículo (abrev.)"
+    },
+    {
+     "de": "Kraftfahrzeug",
+     "es": "vehículo de motor"
+    },
+    {
+     "de": "Fahrzeug",
+     "es": "vehículo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "coche",
+   "palabras": [
+    {
+     "de": "Pkw",
+     "es": "turismo, coche"
+    },
+    {
+     "de": "Auto",
+     "es": "coche"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "centro de la ciudad",
+   "palabras": [
+    {
+     "de": "Innenstadt",
+     "es": "centro"
+    },
+    {
+     "de": "Stadtzentrum",
+     "es": "centro de la ciudad"
+    },
+    {
+     "de": "Zentrum",
+     "es": "centro"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "club",
+   "palabras": [
+    {
+     "de": "Verein",
+     "es": "asociación, club"
+    },
+    {
+     "de": "Club",
+     "es": "club"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "descargar",
+   "palabras": [
+    {
+     "de": "herunterladen",
+     "es": "descargar"
+    },
+    {
+     "de": "downloaden",
+     "es": "descargar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "funcionar",
+   "palabras": [
+    {
+     "de": "funktionieren",
+     "es": "funcionar"
+    },
+    {
+     "de": "klappen",
+     "es": "salir bien"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "introducción",
+   "palabras": [
+    {
+     "de": "Einleitung",
+     "es": "introducción"
+    },
+    {
+     "de": "Einführung",
+     "es": "introducción"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "llegar",
+   "palabras": [
+    {
+     "de": "ankommen",
+     "es": "llegar"
+    },
+    {
+     "de": "eintreffen",
+     "es": "llegar (formal)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "matemáticas",
+   "palabras": [
+    {
+     "de": "Mathematik",
+     "es": "matemáticas"
+    },
+    {
+     "de": "Mathe",
+     "es": "mates"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "por lo menos",
+   "palabras": [
+    {
+     "de": "wenigstens",
+     "es": "por lo menos"
+    },
+    {
+     "de": "zumindest",
+     "es": "al menos"
+    },
+    {
+     "de": "mindestens",
+     "es": "como mínimo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "descansar",
+   "palabras": [
+    {
+     "de": "sich ausruhen",
+     "es": "descansar"
+    },
+    {
+     "de": "sich entspannen",
+     "es": "relajarse"
+    },
+    {
+     "de": "sich erholen",
+     "es": "recuperarse"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "consejo",
+   "palabras": [
+    {
+     "de": "Rat",
+     "es": "consejo"
+    },
+    {
+     "de": "Ratschlag",
+     "es": "consejo"
+    },
+    {
+     "de": "Tipp",
+     "es": "consejo, truco"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "conocimiento",
+   "palabras": [
+    {
+     "de": "Kenntnis",
+     "es": "conocimiento"
+    },
+    {
+     "de": "Wissen",
+     "es": "saber"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "cuidar",
+   "palabras": [
+    {
+     "de": "pflegen",
+     "es": "cuidar"
+    },
+    {
+     "de": "sich kümmern um",
+     "es": "ocuparse de"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "denunciar",
+   "palabras": [
+    {
+     "de": "anzeigen",
+     "es": "denunciar"
+    },
+    {
+     "de": "melden",
+     "es": "dar parte"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "entrar",
+   "palabras": [
+    {
+     "de": "hereinkommen",
+     "es": "entrar"
+    },
+    {
+     "de": "reinkommen",
+     "es": "entrar (coloq.)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "sueldo",
+   "palabras": [
+    {
+     "de": "Lohn",
+     "es": "salario"
+    },
+    {
+     "de": "Gehalt",
+     "es": "sueldo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "sentimiento",
+   "palabras": [
+    {
+     "de": "Gefühl",
+     "es": "sentimiento"
+    },
+    {
+     "de": "Emotion",
+     "es": "emoción"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "estado de ánimo",
+   "palabras": [
+    {
+     "de": "Laune",
+     "es": "humor"
+    },
+    {
+     "de": "Stimmung",
+     "es": "ambiente, ánimo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "opinión",
+   "palabras": [
+    {
+     "de": "Meinung",
+     "es": "opinión"
+    },
+    {
+     "de": "Ansicht",
+     "es": "punto de vista"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "participar",
+   "palabras": [
+    {
+     "de": "teilnehmen",
+     "es": "participar"
+    },
+    {
+     "de": "mitmachen",
+     "es": "participar"
+    },
+    {
+     "de": "dabei sein",
+     "es": "estar presente"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "móvil",
+   "palabras": [
+    {
+     "de": "Handy",
+     "es": "móvil"
+    },
+    {
+     "de": "Smartphone",
+     "es": "smartphone"
+    },
+    {
+     "de": "Mobiltelefon",
+     "es": "teléfono móvil"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "organismo oficial",
+   "palabras": [
+    {
+     "de": "Amt",
+     "es": "oficina pública"
+    },
+    {
+     "de": "Behörde",
+     "es": "autoridad, organismo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "empresa",
+   "palabras": [
+    {
+     "de": "Betrieb",
+     "es": "empresa"
+    },
+    {
+     "de": "Firma",
+     "es": "empresa"
+    },
+    {
+     "de": "Unternehmen",
+     "es": "empresa"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "puesto de trabajo",
+   "palabras": [
+    {
+     "de": "Stelle",
+     "es": "puesto"
+    },
+    {
+     "de": "Job",
+     "es": "trabajo"
+    },
+    {
+     "de": "Arbeitsplatz",
+     "es": "puesto de trabajo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "vacaciones",
+   "palabras": [
+    {
+     "de": "Urlaub",
+     "es": "vacaciones"
+    },
+    {
+     "de": "Ferien",
+     "es": "vacaciones (escolares)"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "a menudo",
+   "palabras": [
+    {
+     "de": "häufig",
+     "es": "a menudo"
+    },
+    {
+     "de": "oft",
+     "es": "a menudo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "por eso",
+   "palabras": [
+    {
+     "de": "deshalb",
+     "es": "por eso"
+    },
+    {
+     "de": "deswegen",
+     "es": "por eso"
+    },
+    {
+     "de": "darum",
+     "es": "por eso"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "de repente",
+   "palabras": [
+    {
+     "de": "plötzlich",
+     "es": "de repente"
+    },
+    {
+     "de": "auf einmal",
+     "es": "de golpe"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "sin embargo",
+   "palabras": [
+    {
+     "de": "trotzdem",
+     "es": "aun así"
+    },
+    {
+     "de": "dennoch",
+     "es": "sin embargo"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "quejarse",
+   "palabras": [
+    {
+     "de": "sich beschweren",
+     "es": "quejarse"
+    },
+    {
+     "de": "sich beklagen",
+     "es": "lamentarse"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "decorar",
+   "palabras": [
+    {
+     "de": "schmücken",
+     "es": "adornar"
+    },
+    {
+     "de": "dekorieren",
+     "es": "decorar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "enseñar",
+   "palabras": [
+    {
+     "de": "unterrichten",
+     "es": "dar clase"
+    },
+    {
+     "de": "lehren",
+     "es": "enseñar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "miedo",
+   "palabras": [
+    {
+     "de": "Angst",
+     "es": "miedo"
+    },
+    {
+     "de": "Furcht",
+     "es": "temor"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "bonito",
+   "palabras": [
+    {
+     "de": "hübsch",
+     "es": "bonito"
+    },
+    {
+     "de": "schön",
+     "es": "bonito"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "actividad",
+   "palabras": [
+    {
+     "de": "Tätigkeit",
+     "es": "actividad"
+    },
+    {
+     "de": "Aktivität",
+     "es": "actividad"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "billete",
+   "palabras": [
+    {
+     "de": "Fahrkarte",
+     "es": "billete"
+    },
+    {
+     "de": "Ticket",
+     "es": "billete, entrada"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "rápido",
+   "palabras": [
+    {
+     "de": "schnell",
+     "es": "rápido"
+    },
+    {
+     "de": "blitzschnell",
+     "es": "rapidísimo"
+    },
+    {
+     "de": "zügig",
+     "es": "ágil"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "extraño",
+   "palabras": [
+    {
+     "de": "komisch",
+     "es": "raro"
+    },
+    {
+     "de": "seltsam",
+     "es": "extraño"
+    },
+    {
+     "de": "merkwürdig",
+     "es": "curioso"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "ayudar",
+   "palabras": [
+    {
+     "de": "helfen",
+     "es": "ayudar"
+    },
+    {
+     "de": "unterstützen",
+     "es": "apoyar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "elegir",
+   "palabras": [
+    {
+     "de": "auswählen",
+     "es": "elegir"
+    },
+    {
+     "de": "aussuchen",
+     "es": "escoger"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "reservar",
+   "palabras": [
+    {
+     "de": "buchen",
+     "es": "reservar"
+    },
+    {
+     "de": "reservieren",
+     "es": "reservar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "conversar",
+   "palabras": [
+    {
+     "de": "sich unterhalten",
+     "es": "conversar"
+    },
+    {
+     "de": "plaudern",
+     "es": "charlar"
+    }
+   ]
+  },
+  {
+   "tipo": "sinonimos",
+   "significado": "pasar (tiempo)",
+   "palabras": [
+    {
+     "de": "vergehen",
+     "es": "pasar (el tiempo)"
+    },
+    {
+     "de": "vorbeigehen",
+     "es": "pasar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "dick",
+     "es": "gordo"
+    },
+    {
+     "de": "dünn",
+     "es": "delgado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "nass",
+     "es": "mojado"
+    },
+    {
+     "de": "trocken",
+     "es": "seco"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "öffentlich",
+     "es": "público"
+    },
+    {
+     "de": "privat",
+     "es": "privado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "mündlich",
+     "es": "oral"
+    },
+    {
+     "de": "schriftlich",
+     "es": "escrito"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "leicht",
+     "es": "ligero"
+    },
+    {
+     "de": "schwer",
+     "es": "pesado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einfach",
+     "es": "sencillo"
+    },
+    {
+     "de": "kompliziert",
+     "es": "complicado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "modern",
+     "es": "moderno"
+    },
+    {
+     "de": "altmodisch",
+     "es": "anticuado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "vorwärts",
+     "es": "hacia delante"
+    },
+    {
+     "de": "rückwärts",
+     "es": "hacia atrás"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "davor",
+     "es": "delante"
+    },
+    {
+     "de": "dahinter",
+     "es": "detrás"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "gewinnen",
+     "es": "ganar"
+    },
+    {
+     "de": "verlieren",
+     "es": "perder"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "lachen",
+     "es": "reír"
+    },
+    {
+     "de": "weinen",
+     "es": "llorar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "zusagen",
+     "es": "aceptar (invitación)"
+    },
+    {
+     "de": "absagen",
+     "es": "cancelar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "zustimmen",
+     "es": "estar de acuerdo"
+    },
+    {
+     "de": "ablehnen",
+     "es": "rechazar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "hochladen",
+     "es": "subir (archivo)"
+    },
+    {
+     "de": "herunterladen",
+     "es": "descargar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einsteigen",
+     "es": "subir (al tren)"
+    },
+    {
+     "de": "aussteigen",
+     "es": "bajar (del tren)"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "abfliegen",
+     "es": "despegar"
+    },
+    {
+     "de": "landen",
+     "es": "aterrizar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einstellen",
+     "es": "contratar"
+    },
+    {
+     "de": "entlassen",
+     "es": "despedir"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "ankommen",
+     "es": "llegar"
+    },
+    {
+     "de": "abfahren",
+     "es": "salir (vehículo)"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "fest",
+     "es": "fijo"
+    },
+    {
+     "de": "befristet",
+     "es": "temporal"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "nötig",
+     "es": "necesario"
+    },
+    {
+     "de": "unnötig",
+     "es": "innecesario"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "geben",
+     "es": "dar"
+    },
+    {
+     "de": "nehmen",
+     "es": "tomar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "kommen",
+     "es": "venir"
+    },
+    {
+     "de": "gehen",
+     "es": "irse"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "fröhlich",
+     "es": "alegre"
+    },
+    {
+     "de": "traurig",
+     "es": "triste"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "beginnen",
+     "es": "comenzar"
+    },
+    {
+     "de": "beenden",
+     "es": "terminar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "vergessen",
+     "es": "olvidar"
+    },
+    {
+     "de": "sich erinnern",
+     "es": "recordar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "sparen",
+     "es": "ahorrar"
+    },
+    {
+     "de": "ausgeben",
+     "es": "gastar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "nah",
+     "es": "cerca"
+    },
+    {
+     "de": "fern",
+     "es": "lejos"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Sitzplatz",
+     "es": "asiento"
+    },
+    {
+     "de": "Stehplatz",
+     "es": "plaza de pie"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Vollzeit",
+     "es": "jornada completa"
+    },
+    {
+     "de": "Teilzeit",
+     "es": "media jornada"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Hinfahrt",
+     "es": "ida"
+    },
+    {
+     "de": "Rückfahrt",
+     "es": "vuelta"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "schmutzig",
+     "es": "sucio"
+    },
+    {
+     "de": "sauber",
+     "es": "limpio"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "reich",
+     "es": "rico"
+    },
+    {
+     "de": "arm",
+     "es": "pobre"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "niedrig",
+     "es": "bajo"
+    },
+    {
+     "de": "hoch",
+     "es": "alto"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "stark",
+     "es": "fuerte"
+    },
+    {
+     "de": "schwach",
+     "es": "débil"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "wahr",
+     "es": "verdadero"
+    },
+    {
+     "de": "falsch",
+     "es": "falso"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "gültig",
+     "es": "válido"
+    },
+    {
+     "de": "ungültig",
+     "es": "no válido"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "kühl",
+     "es": "fresco"
+    },
+    {
+     "de": "warm",
+     "es": "cálido"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "still",
+     "es": "silencioso"
+    },
+    {
+     "de": "laut",
+     "es": "ruidoso"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "interessant",
+     "es": "interesante"
+    },
+    {
+     "de": "uninteressant",
+     "es": "poco interesante"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "praktisch",
+     "es": "práctico"
+    },
+    {
+     "de": "unpraktisch",
+     "es": "poco práctico"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Eingang",
+     "es": "entrada"
+    },
+    {
+     "de": "Ausgang",
+     "es": "salida"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Abflug",
+     "es": "salida (vuelo)"
+    },
+    {
+     "de": "Ankunft",
+     "es": "llegada"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Anreise",
+     "es": "viaje de ida"
+    },
+    {
+     "de": "Abreise",
+     "es": "partida"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Arbeitgeber",
+     "es": "empleador"
+    },
+    {
+     "de": "Arbeitnehmer",
+     "es": "empleado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "zunehmen",
+     "es": "engordar, aumentar"
+    },
+    {
+     "de": "abnehmen",
+     "es": "adelgazar, disminuir"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "hinunter",
+     "es": "hacia abajo"
+    },
+    {
+     "de": "hinauf",
+     "es": "hacia arriba"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "tot",
+     "es": "muerto"
+    },
+    {
+     "de": "lebendig",
+     "es": "vivo"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "heiraten",
+     "es": "casarse"
+    },
+    {
+     "de": "sich scheiden lassen",
+     "es": "divorciarse"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einziehen",
+     "es": "mudarse (entrar)"
+    },
+    {
+     "de": "ausziehen",
+     "es": "mudarse (salir)"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einschalten",
+     "es": "encender"
+    },
+    {
+     "de": "ausschalten",
+     "es": "apagar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "mieten",
+     "es": "alquilar (como inquilino)"
+    },
+    {
+     "de": "vermieten",
+     "es": "alquilar (como dueño)"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "öffnen",
+     "es": "abrir"
+    },
+    {
+     "de": "schließen",
+     "es": "cerrar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Vorteil",
+     "es": "ventaja"
+    },
+    {
+     "de": "Nachteil",
+     "es": "desventaja"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Erfolg",
+     "es": "éxito"
+    },
+    {
+     "de": "Misserfolg",
+     "es": "fracaso"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "bestehen",
+     "es": "aprobar"
+    },
+    {
+     "de": "durchfallen",
+     "es": "suspender"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "erlaubt",
+     "es": "permitido"
+    },
+    {
+     "de": "verboten",
+     "es": "prohibido"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "spätestens",
+     "es": "a más tardar"
+    },
+    {
+     "de": "frühestens",
+     "es": "como pronto"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "häufig",
+     "es": "a menudo"
+    },
+    {
+     "de": "selten",
+     "es": "raramente"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "geduldig",
+     "es": "paciente"
+    },
+    {
+     "de": "ungeduldig",
+     "es": "impaciente"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "möglich",
+     "es": "posible"
+    },
+    {
+     "de": "unmöglich",
+     "es": "imposible"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "sich langweilen",
+     "es": "aburrirse"
+    },
+    {
+     "de": "sich amüsieren",
+     "es": "divertirse"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "kostenlos",
+     "es": "gratis"
+    },
+    {
+     "de": "kostenpflichtig",
+     "es": "de pago"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "fremd",
+     "es": "desconocido"
+    },
+    {
+     "de": "bekannt",
+     "es": "conocido"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "sympathisch",
+     "es": "simpático"
+    },
+    {
+     "de": "unsympathisch",
+     "es": "antipático"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "ordentlich",
+     "es": "ordenado"
+    },
+    {
+     "de": "unordentlich",
+     "es": "desordenado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "freiwillig",
+     "es": "voluntario"
+    },
+    {
+     "de": "obligatorisch",
+     "es": "obligatorio"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "wild",
+     "es": "salvaje"
+    },
+    {
+     "de": "zahm",
+     "es": "manso"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "bremsen",
+     "es": "frenar"
+    },
+    {
+     "de": "beschleunigen",
+     "es": "acelerar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "abheben",
+     "es": "sacar (dinero)"
+    },
+    {
+     "de": "einzahlen",
+     "es": "ingresar"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "ehrlich",
+     "es": "sincero"
+    },
+    {
+     "de": "unehrlich",
+     "es": "deshonesto"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "spontan",
+     "es": "espontáneo"
+    },
+    {
+     "de": "geplant",
+     "es": "planeado"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "erwachsen",
+     "es": "adulto"
+    },
+    {
+     "de": "minderjährig",
+     "es": "menor de edad"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Frage",
+     "es": "pregunta"
+    },
+    {
+     "de": "Antwort",
+     "es": "respuesta"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "Anfang",
+     "es": "principio"
+    },
+    {
+     "de": "Ende",
+     "es": "final"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "früh",
+     "es": "temprano"
+    },
+    {
+     "de": "spät",
+     "es": "tarde"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "langsam",
+     "es": "lento"
+    },
+    {
+     "de": "schnell",
+     "es": "rápido"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "billig",
+     "es": "barato"
+    },
+    {
+     "de": "teuer",
+     "es": "caro"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "groß",
+     "es": "grande"
+    },
+    {
+     "de": "klein",
+     "es": "pequeño"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "einsam",
+     "es": "solo"
+    },
+    {
+     "de": "gesellig",
+     "es": "sociable"
+    }
+   ]
+  },
+  {
+   "tipo": "antonimos",
+   "palabras": [
+    {
+     "de": "abstrakt",
+     "es": "abstracto"
+    },
+    {
+     "de": "konkret",
+     "es": "concreto"
+    }
+   ]
+  }
+ ]
+}
